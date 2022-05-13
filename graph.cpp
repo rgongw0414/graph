@@ -21,6 +21,9 @@ class Graph{
         int, pair<Node, list<Node>>
     > LIST; // adj list of graph
     Graph(){}
+    ~Graph(){
+        cout << "deconstructor called\n";
+    }
     void insertNode(int value);
     void insertNode(Node &node);
     void connect(Node &a, Node &b); // create an edge between a & b
@@ -58,6 +61,7 @@ void Graph::connect(Node &a, Node &b){
 
 void Graph::print_all(){
     for (auto i: LIST){
+        //cout << "id: " << i.first << endl;
         cout << "id: " << i.second.first.id << endl;
         for (auto j: i.second.second){
             cout << "\tadj_id: " << j.id << ", adj_value: " << j.value << endl;
@@ -78,27 +82,39 @@ void Graph::removeNode(Node &node){
             cout << "not found\n";
         }
     }
-    LIST.erase(iter);
+    LIST.erase(iter); // what's the content after erase ?
+    node.state = -1;
 }
 
 void Graph::removeEdge(Node &a, Node &b){
-    auto iter1 = LIST.find(a.id);
-    auto iter2 = LIST.find(b.id);
+    if (a.state == -1 || b.state == -1) return;
     // "find" return b's iterator in adj_list of node_a
-    auto tmp1 = find(LIST[a.id].second.begin(), LIST[a.id].second.end(), b); // remove node's adj edge
-    auto tmp2 = find(LIST[b.id].second.begin(), LIST[b.id].second.end(), a); 
-    if (tmp1 != LIST[a.id].second.end()){
-        LIST[a.id].second.erase(tmp1);
+    for (auto i = LIST[a.id].second.begin(); i != LIST[a.id].second.end(); i++){
+        if (*i == b){
+            LIST[a.id].second.erase(i);
+            break;
+        }
     }
-    else{
-        cout << "node a not found\n";
+    for (auto i = LIST[b.id].second.begin(); i != LIST[b.id].second.end(); i++){
+        if (*i == a){
+            LIST[b.id].second.erase(i);
+            break;
+        }
     }
-    if (tmp2 != LIST[b.id].second.end()){
-        LIST[b.id].second.erase(tmp2);
-    }
-    else{
-        cout << "node b not found\n";
-    }
+    // auto tmp1 = find(LIST[a.id].second.begin(), LIST[a.id].second.end(), b); // remove node's adj edge
+    // auto tmp2 = find(LIST[b.id].second.begin(), LIST[b.id].second.end(), a); 
+    // if (tmp1 != LIST[a.id].second.end()){
+    //     LIST[a.id].second.erase(tmp1);
+    // }
+    // else{
+    //     cout << "node b not found\n";
+    // }
+    // if (tmp2 != LIST[b.id].second.end()){
+    //     LIST[b.id].second.erase(tmp2);
+    // }
+    // else{
+    //     cout << "node a not found\n";
+    // }
 }
 
 int main(){
@@ -113,7 +129,8 @@ int main(){
     g.connect(b, c);
     g.connect(a, c);
     g.print_all();
-    // g.removeNode(a);
+    g.removeNode(b);
+    // b.~Node(); // can destructor be called earlier ?
     g.removeEdge(a, b);
     g.print_all();
 }
