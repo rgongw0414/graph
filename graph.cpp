@@ -25,7 +25,10 @@ class Graph{
     map<
         int, pair<Node<T>*, list<Node<T>*>>
     > LIST; // adj list of graph
+    bool Acyclic; // default acyclic, once find back edge, set to cyclic.
     public:
+    Graph():Acyclic(true){}
+    bool acyclic();
     void insertNode(T value);
     void insertNode(Node<T> *node);
     void connect(Node<T> *a, Node<T> *b); // create an edge between a & b
@@ -39,6 +42,11 @@ class Graph{
     void print_all();
     void color_reset();
 };
+
+template<class T>
+bool Graph<T>::acyclic(){
+    return this->Acyclic;
+}
 
 template<class T>
 void Graph<T>::insertNode(T value){
@@ -200,33 +208,46 @@ void Graph<T>::color_reset(){
 }
 
 template<class T>
-void Graph<T>::DFS_traverse(Node<T> *node){
-    if (LIST.find(node->id) == LIST.end()) return;
-    node->color = 1; // set node to gray
-    node->TIME.first = ::TIME++;
-    cout << "id_" << node->id << ", value: " << node->value << endl;
-    for (auto &n: LIST[node->id].second){
-        if (n->color == 0){
-            n->pred = node;
-            DFS_traverse(n);
+void Graph<T>::DFS_traverse(Node<T> *a){
+    if (LIST.find(a->id) == LIST.end()) return;
+    a->color = 1; // set node to gray
+    a->TIME.first = ::TIME++;
+    cout << "\tid_" << a->id << ", value: " << a->value << endl;
+    for (auto &b: LIST[a->id].second){
+        if (b->color == 0){
+            // cout << "tree edge: (" << a->value << ", " << b->value << ")\n";
+            b->pred = a;
+            DFS_traverse(b);
+        }
+        else if (b->color == 1){
+            // cout << "back edge: (" << a->value << ", " << b->value << ")\n";
+            this->Acyclic = false;
+        }
+        else{
+            if (a->TIME.first < b->TIME.first){
+                // cout << "forward edge: (" << a->value << ", " << b->value << ")\n";
+            }
+            else if (a->TIME.first > b->TIME.first){
+                // cout << "cross edge: (" << a->value << ", " << b->value << ")\n";
+            }
         }
     }
-    node->color = 2; // set node to black
-    node->TIME.second = ::TIME++;
+    a->color = 2; // set node to black
+    a->TIME.second = ::TIME++;
 }
 
 template<class T>
 void Graph<T>::DFS(Node<T> *node){
     cout << "-\nDFS:\n";
     DFS_traverse(node);
-    cout << "-\ndo DFS to nodes that haven't been visited: \n";
+    // cout << "-\ndo DFS to nodes that haven't been visited: \n";
     for (auto l: LIST){
         if (l.second.first->color == 0){
             DFS_traverse(l.second.first);
-            // cout << "id_" << l.second.first->id << ", value: " << l.second.first->value << " color: " << l.second.first->color << endl;
         }
     }
     color_reset();
+    ::TIME = 0;
 }
 
 int main(){
@@ -243,9 +264,9 @@ int main(){
     graph.connect_d(g, e); graph.connect_d(g, h);
     graph.connect_d(h, g);
     
-    graph.print_all();
-    graph.removeNode_d(b);
-    graph.removeEdge_d(a, c);
+    // graph.print_all();
+    // graph.removeNode_d(b);
+    // graph.removeEdge_d(a, c);
     graph.DFS(a);
     graph.print_all();
 }
