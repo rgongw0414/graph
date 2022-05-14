@@ -6,7 +6,7 @@ static int gid = 0;
 class Node{
     public:
     int id;
-    int state;
+    int state; // 0: white, 1: gray, 2: black
     int value;
     Node():id(gid++), state(0), value(0){}
     Node(int v):id(gid++), state(0), value(v){}
@@ -28,6 +28,7 @@ class Graph{
     void removeEdge(Node *a, Node *b); // delete the edge between a & b
     void DFS_traverse(Node *a);
     void DFS(Node *a);
+    void reset();
 };
 
 void Graph::insertNode(int value){
@@ -111,6 +112,13 @@ void Graph::removeEdge(Node *a, Node *b){
     }
 }
 
+void Graph::reset(){
+    // set all nodes' state to white, i.e. set to 0
+    for (auto l: LIST){
+        l.second.first->state = 0;
+    }
+}
+
 void Graph::DFS_traverse(Node *node){
     if (LIST.find(node->id) == LIST.end()) return;
     node->state = 1; // set node to gray
@@ -133,13 +141,14 @@ void Graph::DFS(Node *node){
             // cout << "id_" << l.second.first->id << ", value: " << l.second.first->value << " state: " << l.second.first->state << endl;
         }
     }
+    reset();
 }
 
 int main(){
+    Graph g = Graph();
     Node *a = new Node(5);
     Node *b = new Node(10);
     Node *c = new Node(15);
-    Graph g = Graph();
     g.insertNode(a);
     g.insertNode(b);
     g.insertNode(c);
@@ -159,7 +168,8 @@ int main(){
     g.connect(a, d);
     g.print_all();
     g.DFS(a);
-    g.print_all();
+    // g.reset();
+    // g.print_all();
     // g.removeEdge(a, d);
     // g.print_all();
     // g.removeEdge(a, d);
