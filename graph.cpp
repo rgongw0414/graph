@@ -108,6 +108,18 @@ void Graph::removeEdge(Node &a, Node &b){
     }
 }
 
+void Graph::DFS(Node &node){
+    if (LIST.find(node.id) == LIST.end()) return;
+    node.state = 1; // set node to gray
+    cout << "id_" << node.id << ", value: " << node.value << endl;
+    for (auto &n: LIST[node.id].second){
+        if (n.state == 0){
+            DFS(n);
+        }
+    }
+    node.state = 2; // set node to black
+}
+
 int main(){
     Node a = Node(5);
     Node b = Node(10);
@@ -118,16 +130,17 @@ int main(){
     g.insertNode(c);
     g.connect(a, b);
     g.connect(b, c);
-    g.connect(c, a);
-    g.print_all();
-    g.removeNode(b);
-    g.removeEdge(a, b);
+    // g.connect(c, a);
+    // g.print_all();
+    // g.removeNode(b);
+    // g.removeEdge(a, b);
     Node d = Node(20);
     g.insertNode(d);
     g.connect(a, d);
     g.print_all();
-    g.removeEdge(a, d);
-    g.print_all();
-    g.removeEdge(a, d);
-    g.removeNode(b);
+    g.DFS(a);
+    // g.removeEdge(a, d);
+    // g.print_all();
+    // g.removeEdge(a, d);
+    // g.removeNode(b);
 }
