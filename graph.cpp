@@ -154,17 +154,6 @@ void Graph<T>::removeNode_d(Node<T> *node){
     }
     LIST.erase(a);
     delete(node);
-
-    // for (auto &n: (*iter).second.second){ // iterate through node's all adj nodes
-    //     // NOTE: if not simple graph, remember to remove all edges.
-    //     auto tmp = find(LIST[n->id].second.begin(), LIST[n->id].second.end(), node); // remove node's adj edge
-    //     if (tmp != LIST[n->id].second.end()){
-    //         LIST[n->id].second.erase(tmp);
-    //     }
-    //     else{
-    //         cout << "-\nedge(" << n->id << ", " << node->id << ") not found\n";
-    //     }
-    // }
 }
 
 template<class T>
