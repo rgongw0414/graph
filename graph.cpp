@@ -16,21 +16,17 @@ class Node{
 };
 
 class Graph{
-    public:
     map<
         int, pair<Node, list<Node>>
     > LIST; // adj list of graph
-    Graph(){}
-    ~Graph(){
-        cout << "deconstructor called\n";
-    }
+    public:
     void insertNode(int value);
     void insertNode(Node &node);
     void connect(Node &a, Node &b); // create an edge between a & b
-    void disconnect(Node &a, Node &b); // delete the edge between a & b
     void print_all();
     void removeNode(Node &node);
-    void removeEdge(Node &a, Node &b);
+    void removeEdge(Node &a, Node &b); // delete the edge between a & b
+    void DFS(Node &a);
 };
 
 void Graph::insertNode(int value){
@@ -55,14 +51,24 @@ void Graph::insertNode(Node &node){
 }
 
 void Graph::connect(Node &a, Node &b){
-    LIST[a.id].second.emplace_back(b);
-    LIST[b.id].second.emplace_back(a);
+    int foundA = (LIST.find(a.id) != LIST.end());
+    int foundB = (LIST.find(b.id) != LIST.end());
+    if (foundA && foundB){
+        LIST[a.id].second.emplace_back(b);
+        LIST[b.id].second.emplace_back(a);
+    }
+    else{
+        if (!foundA)
+            cout << "-\nnode id_" << a.id << " not found\n";
+        if (!foundB)
+            cout << "-\nnode id_" << b.id << " not found\n";
+    }
 }
 
 void Graph::print_all(){
+    cout << "-\n";
     for (auto i: LIST){
-        //cout << "id: " << i.first << endl;
-        cout << "id: " << i.second.first.id << endl;
+        cout << "id: " << i.second.first.id << ", value: " << i.second.first.value << endl;
         for (auto j: i.second.second){
             cout << "\tadj_id: " << j.id << ", adj_value: " << j.value << endl;
         }
@@ -72,6 +78,7 @@ void Graph::print_all(){
 void Graph::removeNode(Node &node){
     // remove node and it's all adjacent edge from adj_list
     auto iter = LIST.find(node.id);
+    if (iter == LIST.end()) return;
     for (auto &n: (*iter).second.second){ // iterate through node's all adj nodes
         // NOTE: if not simple graph, remember to remove all edges.
         auto tmp = find(LIST[n.id].second.begin(), LIST[n.id].second.end(), node); // remove node's adj edge
@@ -79,42 +86,26 @@ void Graph::removeNode(Node &node){
             LIST[n.id].second.erase(tmp);
         }
         else{
-            cout << "not found\n";
+            cout << "-\nedge(" << n.id << ", " << node.id << ") not found\n";
         }
     }
     LIST.erase(iter); // what's the content after erase ?
-    node.state = -1;
 }
 
 void Graph::removeEdge(Node &a, Node &b){
-    if (a.state == -1 || b.state == -1) return;
-    // "find" return b's iterator in adj_list of node_a
-    for (auto i = LIST[a.id].second.begin(); i != LIST[a.id].second.end(); i++){
-        if (*i == b){
-            LIST[a.id].second.erase(i);
-            break;
-        }
+    if (!LIST.count(a.id)) return;
+    if (!LIST.count(b.id)) return; 
+    // NOTE: if LIST[id] is called, and id is not a key in map, cpp would implicitly create an element and insert it to map, and might cause bugs.
+    // remove node's adj edge
+    auto ab = find(LIST[a.id].second.begin(), LIST[a.id].second.end(), b); // edge(a, b)
+    auto ba = find(LIST[b.id].second.begin(), LIST[b.id].second.end(), a); // edge(b, a)
+    if (ab != LIST[a.id].second.end() && ba != LIST[b.id].second.end()){
+        LIST[a.id].second.erase(ab);
+        LIST[b.id].second.erase(ba);
     }
-    for (auto i = LIST[b.id].second.begin(); i != LIST[b.id].second.end(); i++){
-        if (*i == a){
-            LIST[b.id].second.erase(i);
-            break;
-        }
+    else{
+        cout << "-\nedge(" << a.id << ", " << b.id << ") not found\n";
     }
-    // auto tmp1 = find(LIST[a.id].second.begin(), LIST[a.id].second.end(), b); // remove node's adj edge
-    // auto tmp2 = find(LIST[b.id].second.begin(), LIST[b.id].second.end(), a); 
-    // if (tmp1 != LIST[a.id].second.end()){
-    //     LIST[a.id].second.erase(tmp1);
-    // }
-    // else{
-    //     cout << "node b not found\n";
-    // }
-    // if (tmp2 != LIST[b.id].second.end()){
-    //     LIST[b.id].second.erase(tmp2);
-    // }
-    // else{
-    //     cout << "node a not found\n";
-    // }
 }
 
 int main(){
@@ -127,10 +118,16 @@ int main(){
     g.insertNode(c);
     g.connect(a, b);
     g.connect(b, c);
-    g.connect(a, c);
+    g.connect(c, a);
     g.print_all();
     g.removeNode(b);
-    // b.~Node(); // can destructor be called earlier ?
     g.removeEdge(a, b);
+    Node d = Node(20);
+    g.insertNode(d);
+    g.connect(a, d);
     g.print_all();
+    g.removeEdge(a, d);
+    g.print_all();
+    g.removeEdge(a, d);
+    g.removeNode(b);
 }
