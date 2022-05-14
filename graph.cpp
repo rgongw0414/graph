@@ -26,9 +26,11 @@ class Graph{
         int, pair<Node<T>*, list<Node<T>*>>
     > LIST; // adj list of graph
     bool Acyclic; // default acyclic, once find back edge, set to cyclic.
+    bool Directed;
     public:
-    Graph():Acyclic(true){}
+    Graph():Acyclic(true), Directed(false){}
     bool acyclic();
+    bool directed();
     void insertNode(T value);
     void insertNode(Node<T> *node);
     void connect(Node<T> *a, Node<T> *b); // create an edge between a & b
@@ -46,6 +48,11 @@ class Graph{
 template<class T>
 bool Graph<T>::acyclic(){
     return this->Acyclic;
+}
+
+template<class T>
+bool Graph<T>::directed(){
+    return this->Directed;
 }
 
 template<class T>
@@ -90,6 +97,7 @@ void Graph<T>::connect(Node<T> *a, Node<T> *b){
 
 template<class T>
 void Graph<T>::connect_d(Node<T> *a, Node<T> *b){ 
+    if (!directed()) Directed = true;
     // create edge(a, b)
     bool foundA = (LIST.find(a->id) != LIST.end());
     bool foundB = (LIST.find(b->id) != LIST.end());
@@ -108,6 +116,9 @@ void Graph<T>::connect_d(Node<T> *a, Node<T> *b){
 template<class T>
 void Graph<T>::print_all(){
     cout << "-\n";
+    if (acyclic()) cout << "acyclic, ";
+    if (directed()) cout << "directed graph\n";
+    else cout << "undirected graph\n";
     for (auto i: LIST){
         int pred = (i.second.first->pred) ? i.second.first->pred->id : -1; // if predecessor is NULL, then print as -1
         cout << "id: " << i.second.first->id << ", value: " << i.second.first->value << ", color: " << i.second.first->color 
@@ -140,6 +151,7 @@ void Graph<T>::removeNode(Node<T> *node){
 
 template<class T>
 void Graph<T>::removeNode_d(Node<T> *node){
+    if (!directed()) Directed = true;
     // remove all edges to node_a
     auto a = LIST.find(node->id);
     if (a == LIST.end()) return;
@@ -175,6 +187,7 @@ void Graph<T>::removeEdge(Node<T> *a, Node<T> *b){
 
 template<class T>
 void Graph<T>::removeEdge_d(Node<T> *a, Node<T> *b){
+    if (!directed()) Directed = true;
     if (!LIST.count(a->id)) return;
     if (!LIST.count(b->id)) return; 
     // NOTE: if LIST[id] is called, and id is not a key in map, cpp would implicitly create an element and insert it to map, and might cause bugs.
@@ -203,6 +216,7 @@ void Graph<T>::DFS_traverse(Node<T> *a){
     a->TIME.first = ::TIME++;
     cout << "\tid_" << a->id << ", value: " << a->value << endl;
     for (auto &b: LIST[a->id].second){
+        // NOTE: undirected graph only have either Tree edge or Back edge
         if (b->color == 0){
             // cout << "tree edge: (" << a->value << ", " << b->value << ")\n";
             b->pred = a;
@@ -210,7 +224,14 @@ void Graph<T>::DFS_traverse(Node<T> *a){
         }
         else if (b->color == 1){
             // cout << "back edge: (" << a->value << ", " << b->value << ")\n";
-            this->Acyclic = false;
+            if (directed() && acyclic()) this->Acyclic = false;
+            else if (!directed() && acyclic()){
+                // undirected graph cycle detection
+                if (a->pred->color == 1 && b != a->pred){
+                    // cycle detected
+                    this->Acyclic = false;
+                }
+            }
         }
         else{
             if (a->TIME.first < b->TIME.first){
@@ -252,10 +273,18 @@ int main(){
     graph.connect_d(f, b);
     graph.connect_d(g, e); graph.connect_d(g, h);
     graph.connect_d(h, g);
-    
     // graph.print_all();
     // graph.removeNode_d(b);
     // graph.removeEdge_d(a, c);
-    graph.DFS(a);
-    graph.print_all();
+    // graph.DFS(a);
+    // graph.print_all();
+    Graph<int> graph2 = Graph<int>();
+    Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2);  
+    Node<int> *three = new Node<int>(3); Node<int> *four = new Node<int>(4);
+    graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two);
+    graph2.insertNode(three); //graph2.insertNode(four);
+    graph2.connect(zero, one); graph2.connect(one, two);
+    graph2.connect(two, three); graph2.connect(zero, three); 
+    graph2.DFS(zero);
+    graph2.print_all();
 }
