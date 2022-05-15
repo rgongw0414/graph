@@ -15,7 +15,7 @@ class Node{
     Node* pred; // predecessor
     Node():id(gid++), color(0), TIME(make_pair(0, 0)), pred(NULL){}
     Node(T v):id(gid++), color(0), value(v), TIME(make_pair(0, 0)), pred(NULL){}
-    friend bool operator==(Node<T> a, Node<T> b){
+    friend bool operator==(const Node<T> a, const Node<T> b){
         return a.id == b.id && a.color == b.color && a.value == b.value;
     }
 };
@@ -23,7 +23,7 @@ class Node{
 template<class T>
 class Graph{
     map<
-        int, pair<Node<T>*, list<Node<T>*>>
+        int, pair<const Node<T>*, list<const Node<T>*>>
     > LIST; // adj list of graph
     bool Acyclic; // default acyclic, once find back edge, set to cyclic.
     bool Directed;
@@ -31,16 +31,16 @@ class Graph{
     Graph():Acyclic(true), Directed(false){}
     bool acyclic();
     bool directed();
-    void insertNode(T value);
-    void insertNode(Node<T> *node);
-    void connect(Node<T> *a, Node<T> *b); // create an edge between a & b
-    void connect_d(Node<T> *a, Node<T> *b); // create an edge between a & b
-    void removeNode(Node<T> *node);
-    void removeNode_d(Node<T> *node);
-    void removeEdge(Node<T> *a, Node<T> *b); // delete the edge between a & b
-    void removeEdge_d(Node<T> *a, Node<T> *b); // delete the edge between a & b
-    void DFS_traverse(Node<T> *a);
-    void DFS(Node<T> *a);
+    void insertNode(const T value);
+    void insertNode(const Node<T> *node);
+    void connect(const Node<T> *a, const Node<T> *b); // create an edge between a & b
+    void connect_d(const Node<T> *a, const Node<T> *b); // create an edge between a & b
+    void removeNode(const Node<T> *node);
+    void removeNode_d(const Node<T> *node);
+    void removeEdge(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
+    void removeEdge_d(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
+    void DFS_traverse(const Node<T> *a);
+    void DFS(const Node<T> *a);
     void print_all();
     void color_reset();
 };
@@ -56,9 +56,9 @@ bool Graph<T>::directed(){
 }
 
 template<class T>
-void Graph<T>::insertNode(T value){
-    Node<T> *node = new Node<T>(value);
-    list<Node<T>*> l;
+void Graph<T>::insertNode(const T value){
+    const Node<T> *node = new Node<T>(value);
+    list<const Node<T>*> l;
     // instead of "insert", use "emplace", it avoids implicit creation of temporary element w.r.t. container.
     // "emplace" use the parameters to create element
     const auto p = LIST.emplace(node->id, make_pair(node, l)); // i.e. use node->id, make_pair(node, l) to create element in map
@@ -70,8 +70,8 @@ void Graph<T>::insertNode(T value){
 }
 
 template<class T>
-void Graph<T>::insertNode(Node<T> *node){
-    list<Node<T>*> l;
+void Graph<T>::insertNode(const Node<T> *node){
+    list<const Node<T>*> l;
     const auto p = LIST.emplace(node->id, make_pair(node, l));
     if (!p.second) {
         cout << "insert failed\n";
@@ -79,10 +79,10 @@ void Graph<T>::insertNode(Node<T> *node){
 }
 
 template<class T>
-void Graph<T>::connect(Node<T> *a, Node<T> *b){
+void Graph<T>::connect(const Node<T> *a, const Node<T> *b){
     // create edge(a, b) and edge(b, a)
-    bool foundA = (LIST.find(a->id) != LIST.end());
-    bool foundB = (LIST.find(b->id) != LIST.end());
+    const bool foundA = (LIST.find(a->id) != LIST.end());
+    const bool foundB = (LIST.find(b->id) != LIST.end());
     if (foundA && foundB){
         LIST[a->id].second.emplace_back(b);
         LIST[b->id].second.emplace_back(a);
@@ -96,13 +96,13 @@ void Graph<T>::connect(Node<T> *a, Node<T> *b){
 }
 
 template<class T>
-void Graph<T>::connect_d(Node<T> *a, Node<T> *b){ 
+void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b){ 
     if (!directed()) Directed = true;
     // create edge(a, b)
-    bool foundA = (LIST.find(a->id) != LIST.end());
-    bool foundB = (LIST.find(b->id) != LIST.end());
+    const bool foundA = (LIST.find(a->id) != LIST.end());
+    const bool foundB = (LIST.find(b->id) != LIST.end());
     if (foundA && foundB){
-        b->ptrBy.emplace_back(a->id); // save id of a, for the use of removeNode
+        (const_cast<Node<T>*>(b))->ptrBy.emplace_back(a->id); // save id of a, for the use of removeNode
         LIST[a->id].second.emplace_back(b);
     }
     else{
@@ -131,9 +131,9 @@ void Graph<T>::print_all(){
 }
 
 template<class T>
-void Graph<T>::removeNode(Node<T> *node){
+void Graph<T>::removeNode(const Node<T> *node){
     // remove node and it's all adjacent edge from adj_list
-    auto a = LIST.find(node->id);
+    const auto a = LIST.find(node->id);
     if (a == LIST.end()) return;
     for (auto &n: (*a).second.second){ // iterate through node's all adj nodes
         // NOTE: if not simple graph, remember to remove all edges.
@@ -150,10 +150,10 @@ void Graph<T>::removeNode(Node<T> *node){
 }
 
 template<class T>
-void Graph<T>::removeNode_d(Node<T> *node){
+void Graph<T>::removeNode_d(const Node<T> *node){
     if (!directed()) Directed = true;
-    // remove all edges to node_a
-    auto a = LIST.find(node->id);
+    // remove all edges to node_a, or edges from node_a to other nodes
+    const auto a = LIST.find(node->id);
     if (a == LIST.end()) return;
     for (int id: node->ptrBy){
         auto b = find(LIST[id].second.begin(), LIST[id].second.end(), node);
@@ -169,13 +169,13 @@ void Graph<T>::removeNode_d(Node<T> *node){
 }
 
 template<class T>
-void Graph<T>::removeEdge(Node<T> *a, Node<T> *b){
+void Graph<T>::removeEdge(const Node<T> *a, const Node<T> *b){
     if (!LIST.count(a->id)) return;
     if (!LIST.count(b->id)) return; 
     // NOTE: if LIST[id] is called, and id is not a key in map, cpp would implicitly create an element and insert it to map, and might cause bugs.
     // remove node's adj edge
-    auto ab = find(LIST[a->id].second.begin(), LIST[a->id].second.end(), b); // edge(a, b)
-    auto ba = find(LIST[b->id].second.begin(), LIST[b->id].second.end(), a); // edge(b, a)
+    const auto ab = find(LIST[a->id].second.begin(), LIST[a->id].second.end(), b); // edge(a, b)
+    const auto ba = find(LIST[b->id].second.begin(), LIST[b->id].second.end(), a); // edge(b, a)
     if (ab != LIST[a->id].second.end() && ba != LIST[b->id].second.end()){
         LIST[a->id].second.erase(ab);
         LIST[b->id].second.erase(ba);
@@ -186,13 +186,13 @@ void Graph<T>::removeEdge(Node<T> *a, Node<T> *b){
 }
 
 template<class T>
-void Graph<T>::removeEdge_d(Node<T> *a, Node<T> *b){
+void Graph<T>::removeEdge_d(const Node<T> *a, const Node<T> *b){
     if (!directed()) Directed = true;
     if (!LIST.count(a->id)) return;
     if (!LIST.count(b->id)) return; 
     // NOTE: if LIST[id] is called, and id is not a key in map, cpp would implicitly create an element and insert it to map, and might cause bugs.
     // remove node's adj edge
-    auto ab = find(LIST[a->id].second.begin(), LIST[a->id].second.end(), b); // edge(a, b)
+    const auto ab = find(LIST[a->id].second.begin(), LIST[a->id].second.end(), b); // edge(a, b)
     if (ab != LIST[a->id].second.end()){
         LIST[a->id].second.erase(ab);
     }
@@ -204,13 +204,14 @@ void Graph<T>::removeEdge_d(Node<T> *a, Node<T> *b){
 template<class T>
 void Graph<T>::color_reset(){
     // set all nodes' color to white, i.e. set to 0
-    for (auto l: LIST){
-        l.second.first->color = 0;
+    for (auto &l: LIST){
+        (const_cast<Node<T>*>(l.second.first))->color = 0;
     }
 }
 
 template<class T>
-void Graph<T>::DFS_traverse(Node<T> *a){
+void Graph<T>::DFS_traverse(const Node<T> *node){
+    auto a = const_cast<Node<T>*>(node);
     if (LIST.find(a->id) == LIST.end()) return;
     a->color = 1; // set node to gray
     a->TIME.first = ::TIME++;
@@ -219,7 +220,7 @@ void Graph<T>::DFS_traverse(Node<T> *a){
         // NOTE: undirected graph only have either Tree edge or Back edge
         if (b->color == 0){
             // cout << "tree edge: (" << a->value << ", " << b->value << ")\n";
-            b->pred = a;
+            (const_cast<Node<T>*>(b))->pred = a;
             DFS_traverse(b);
         }
         else if (b->color == 1){
@@ -247,7 +248,7 @@ void Graph<T>::DFS_traverse(Node<T> *a){
 }
 
 template<class T>
-void Graph<T>::DFS(Node<T> *node){
+void Graph<T>::DFS(const Node<T> *node){
     cout << "-\nDFS:\n";
     DFS_traverse(node);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
@@ -276,13 +277,13 @@ int main(){
     // graph.print_all();
     // graph.removeNode_d(b);
     // graph.removeEdge_d(a, c);
-    // graph.DFS(a);
-    // graph.print_all();
+    graph.DFS(a);
+    graph.print_all();
     Graph<int> graph2 = Graph<int>();
     Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2);  
     Node<int> *three = new Node<int>(3); Node<int> *four = new Node<int>(4);
     graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two);
-    graph2.insertNode(three); //graph2.insertNode(four);
+    graph2.insertNode(three); 
     graph2.connect(zero, one); graph2.connect(one, two);
     graph2.connect(two, three); graph2.connect(zero, three); 
     graph2.DFS(zero);
