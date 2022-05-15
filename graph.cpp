@@ -29,8 +29,8 @@ class Graph{
     bool Directed;
     public:
     Graph():Acyclic(true), Directed(false){}
-    bool acyclic();
-    bool directed();
+    bool acyclic() const;
+    bool directed() const;
     void insertNode(const T value);
     void insertNode(const Node<T> *node);
     void connect(const Node<T> *a, const Node<T> *b); // create an edge between a & b
@@ -41,17 +41,17 @@ class Graph{
     void removeEdge_d(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
     void DFS_traverse(const Node<T> *a);
     void DFS(const Node<T> *a);
-    void print_all();
-    void color_reset();
+    void print_all() const;
+    void color_reset() const;
 };
 
 template<class T>
-bool Graph<T>::acyclic(){
+bool Graph<T>::acyclic() const{
     return this->Acyclic;
 }
 
 template<class T>
-bool Graph<T>::directed(){
+bool Graph<T>::directed() const{
     return this->Directed;
 }
 
@@ -64,18 +64,14 @@ void Graph<T>::insertNode(const T value){
     const auto p = LIST.emplace(node->id, make_pair(node, l)); // i.e. use node->id, make_pair(node, l) to create element in map
     // Returns a pair consisting of an iterator to the inserted element, or the already-existing element if no insertion happened, 
     // and a bool denoting whether the insertion took place.
-    if (!p.second) {
-        cout << "insert failed\n";
-    }
+    if (!p.second) cout << "insert failed\n";
 }
 
 template<class T>
 void Graph<T>::insertNode(const Node<T> *node){
     list<const Node<T>*> l;
     const auto p = LIST.emplace(node->id, make_pair(node, l));
-    if (!p.second) {
-        cout << "insert failed\n";
-    }
+    if (!p.second) cout << "insert failed\n";
 }
 
 template<class T>
@@ -88,10 +84,8 @@ void Graph<T>::connect(const Node<T> *a, const Node<T> *b){
         LIST[b->id].second.emplace_back(a);
     }
     else{
-        if (!foundA)
-            cout << "-\nnode id_" << a->id << " not found\n";
-        if (!foundB)
-            cout << "-\nnode id_" << b->id << " not found\n";
+        if (!foundA) cout << "-\nnode id_" << a->id << " not found\n";
+        if (!foundB) cout << "-\nnode id_" << b->id << " not found\n";
     }
 }
 
@@ -106,15 +100,13 @@ void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b){
         LIST[a->id].second.emplace_back(b);
     }
     else{
-        if (!foundA)
-            cout << "-\nnode id_" << a->id << " not found\n";
-        if (!foundB)
-            cout << "-\nnode id_" << b->id << " not found\n";
+        if (!foundA) cout << "-\nnode id_" << a->id << " not found\n";
+        if (!foundB) cout << "-\nnode id_" << b->id << " not found\n";
     }
 }
 
 template<class T>
-void Graph<T>::print_all(){
+void Graph<T>::print_all() const{
     cout << "-\n";
     if (acyclic()) cout << "acyclic, ";
     if (directed()) cout << "directed graph\n";
@@ -202,7 +194,7 @@ void Graph<T>::removeEdge_d(const Node<T> *a, const Node<T> *b){
 }
 
 template<class T>
-void Graph<T>::color_reset(){
+void Graph<T>::color_reset() const{
     // set all nodes' color to white, i.e. set to 0
     for (auto &l: LIST){
         (const_cast<Node<T>*>(l.second.first))->color = 0;
@@ -234,7 +226,7 @@ void Graph<T>::DFS_traverse(const Node<T> *node){
                 }
             }
         }
-        else{
+        else{ // compare discover time
             if (a->TIME.first < b->TIME.first){
                 // cout << "forward edge: (" << a->value << ", " << b->value << ")\n";
             }
@@ -267,21 +259,15 @@ int main(){
     Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
     graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
     graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
-    graph.connect_d(a, b); graph.connect_d(a, c);
-    graph.connect_d(b, d);
-    graph.connect_d(c, b); graph.connect_d(c, f);
-    graph.connect_d(d, e); graph.connect_d(d, f);
-    graph.connect_d(f, b);
-    graph.connect_d(g, e); graph.connect_d(g, h);
-    graph.connect_d(h, g);
+    graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
+    graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
     // graph.print_all();
     // graph.removeNode_d(b);
     // graph.removeEdge_d(a, c);
     graph.DFS(a);
     graph.print_all();
     Graph<int> graph2 = Graph<int>();
-    Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2);  
-    Node<int> *three = new Node<int>(3); Node<int> *four = new Node<int>(4);
+    Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
     graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two);
     graph2.insertNode(three); 
     graph2.connect(zero, one); graph2.connect(one, two);
