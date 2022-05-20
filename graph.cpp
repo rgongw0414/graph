@@ -305,19 +305,31 @@ void Graph<T>::BFS(const Node<T> *node){
 }
 
 int main(){
-    Graph<char> graph = Graph<char>();
+    // Graph<char> graph = Graph<char>();
     Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
     Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
-    graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
-    graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
-    graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
-    graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
+    Node<char> *i = new Node<char>('I');
+    // graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
+    // graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
+    // graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
+    // graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
     // graph.print_all();
     // graph.removeNode_d(b);
     // graph.removeEdge_d(a, c);
     // graph.DFS(a);
-    graph.BFS(a);
-    graph.print_all();
+    // graph.BFS(a);
+    // graph.print_all();
+
+    Graph<char> graph3 = Graph<char>();
+    graph3.insertNode(a); graph3.insertNode(b); graph3.insertNode(c); graph3.insertNode(d);
+    graph3.insertNode(e); graph3.insertNode(f); graph3.insertNode(g); graph3.insertNode(h);
+    graph3.insertNode(i);
+    graph3.connect(a, b); graph3.connect(a, c); graph3.connect(a, d); graph3.connect(b, e); 
+    graph3.connect(c, e); graph3.connect(c, f); graph3.connect(c, g); graph3.connect(c, h); 
+    graph3.connect(d, h); graph3.connect(h, g); graph3.connect(e, f); graph3.connect(f, i); graph3.connect(g, i); 
+    graph3.BFS(a);
+    graph3.print_all();
+
     // Graph<int> graph2 = Graph<int>();
     // Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
     // graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two);
