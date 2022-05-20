@@ -114,7 +114,7 @@ void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b){
 template<class T>
 void Graph<T>::print_all() const{
     cout << "-\n";
-    if (acyclic()) cout << "acyclic, ";
+    if (acyclic()) cout << "acyclic, "; // detect cycle while DFS
     if (directed()) cout << "directed graph\n";
     else cout << "undirected graph\n";
     for (auto i: LIST){
@@ -288,6 +288,7 @@ void Graph<T>::BFS(const Node<T> *node){
         cout << "node not found\n";
         return;
     }
+    cout << "-\nBFS:\n";
     list<const Node<T>*> queue; // FIFO
     if (node->color == WHITE){
         queue.emplace_back(node);
