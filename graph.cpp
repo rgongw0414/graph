@@ -2,7 +2,6 @@
 using namespace std;
 #define endl '\n'
 #define WHITE 0
-#define IN_QUEUE 1.5 // in queue, but not visited yet.
 #define GRAY 1 // visited
 #define BLACK 2 // finish
 
@@ -17,8 +16,8 @@ class Node{
     vector<int> ptrBy; // ids, for removeNode in directed graph, e.g. consider edge(A, B), B is pointed by A, hence push A's id to ptrBy of B.
     pair<int, int> TIME; //  discover, finish
     Node* pred; // predecessor
-    Node():id(gid++), color(WHITE), TIME(make_pair(0, 0)), pred(NULL){}
-    Node(T v):id(gid++), color(WHITE), value(v), TIME(make_pair(0, 0)), pred(NULL){}
+    Node():id(gid++), color(WHITE), TIME(make_pair(-1, -1)), pred(NULL){}
+    Node(T v):id(gid++), color(WHITE), value(v), TIME(make_pair(-1, -1)), pred(NULL){}
     friend bool operator==(const Node<T> a, const Node<T> b){
         return a.id == b.id && a.color == b.color && a.value == b.value;
     }
@@ -262,23 +261,26 @@ void Graph<T>::DFS(const Node<T> *node){
 template<class T>
 void Graph<T>::BFS_traverse(list<const Node<T>*> &queue){
     if (queue.empty()) return;
+    cout << "queue: \n(front) <- ";
+    for (auto n: queue){
+        cout << n->value << " ";
+    }
+    cout << "<- (back)" << endl;
     auto node = const_cast<Node<T>*>(queue.front());
     queue.pop_front();
-    node->color = GRAY;
-    // node->TIME.first = ::TIME++;
+    node->color = BLACK;
+    node->TIME.second = ::TIME++;
     cout << "\tid_" << node->id << ", value: " << node->value << endl;
     const auto adj_nodes = (*LIST.find(node->id)).second.second;
     for (auto adj_node: adj_nodes){
-        if (adj_node->color == IN_QUEUE) continue;
-        else if (adj_node->color == WHITE) {
+        if (adj_node->color == WHITE) {
+            (const_cast<Node<T>*>(adj_node))->color = GRAY;
+            (const_cast<Node<T>*>(adj_node))->TIME.first = ::TIME++;
             (const_cast<Node<T>*>(adj_node))->pred = node;
-            (const_cast<Node<T>*>(adj_node))->color = IN_QUEUE;
             queue.emplace_back(adj_node);
         }
     }
     BFS_traverse(queue);
-    node->color = BLACK;
-    // node->TIME.second = ::TIME++;
 }
 
 template<class T>
@@ -291,12 +293,16 @@ void Graph<T>::BFS(const Node<T> *node){
     cout << "-\nBFS:\n";
     list<const Node<T>*> queue; // FIFO
     if (node->color == WHITE){
+        (const_cast<Node<T>*>(node))->color = GRAY;
+        (const_cast<Node<T>*>(node))->TIME.first = ::TIME++;
         queue.emplace_back(node);
         BFS_traverse(queue);
     }
     // cout << "-\ndo BFS to nodes that haven't been visited: \n";
     for (auto l: LIST){
         if (l.second.first->color == WHITE){
+            (const_cast<Node<T>*>(l.second.first))->color = GRAY;
+            (const_cast<Node<T>*>(l.second.first))->TIME.first = ::TIME++;
             queue.emplace_back(l.second.first);
             BFS_traverse(queue);
         }
@@ -314,10 +320,7 @@ int main(){
     // graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
     // graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
     // graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
-    // graph.print_all();
-    // graph.removeNode_d(b);
-    // graph.removeEdge_d(a, c);
-    // graph.DFS(a);
+    // // graph.DFS(a);
     // graph.BFS(a);
     // graph.print_all();
 
