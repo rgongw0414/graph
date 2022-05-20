@@ -204,9 +204,8 @@ void Graph<T>::removeEdge_d(const Node<T> *a, const Node<T> *b){
 template<class T>
 void Graph<T>::color_reset() const{
     // set all nodes' color to white, i.e. set to 0
-    for (auto &l: LIST){
+    for (auto &l: LIST)
         (const_cast<Node<T>*>(l.second.first))->color = WHITE;
-    }
 }
 
 template<class T>
@@ -253,9 +252,8 @@ void Graph<T>::DFS(const Node<T> *node){
     DFS_traverse(node);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
     for (auto l: LIST){
-        if (l.second.first->color == WHITE){
+        if (l.second.first->color == WHITE)
             DFS_traverse(l.second.first);
-        }
     }
     color_reset();
     ::TIME = 0;
@@ -264,11 +262,10 @@ void Graph<T>::DFS(const Node<T> *node){
 template<class T>
 void Graph<T>::BFS_traverse(list<const Node<T>*> &queue){
     if (queue.empty()) return;
-    cout << "queue: \n(front) <- ";
-    for (auto n: queue){
-        cout << n->value << " ";
-    }
-    cout << "<- (back)" << endl;
+    // cout << "queue: \n(front) <- ";
+    // for (auto n: queue)
+    //     cout << n->value << " ";
+    // cout << "<- (back)" << endl;
     auto node = const_cast<Node<T>*>(queue.front());
     queue.pop_front();
     node->color = BLACK;
@@ -320,7 +317,6 @@ void Graph<T>::SetCollapsing(const Node<T>* node){
     auto root = current;
     while (root->pred != NULL)
         root = root->pred;
-    // cout << "root: " << root->value << ", current: " << current->value << ", parrent: " << parent->value << endl;
     while (current != root){
         auto parent = current->pred;
         current->pred = root;    
@@ -333,23 +329,20 @@ void Graph<T>::CCDFS(){
     this->DFS((*LIST.begin()).second.first);
     map<int, list<const Node<T>*>> CC;
     for (auto l: LIST){
-        if (l.second.first->pred == NULL){
+        if (l.second.first->pred == NULL)
             CC[l.second.first->id].emplace_back(l.second.first);
-        }
         this->SetCollapsing(l.second.first);
     }
     cout << "-\nthe number of connected component: " << CC.size() << endl;
     for (auto l: LIST){
-        if (l.second.first->pred != NULL && CC.find(l.second.first->pred->id) != CC.end()){
+        if (l.second.first->pred != NULL && CC.find(l.second.first->pred->id) != CC.end())
             CC[l.second.first->pred->id].emplace_back(l.second.first);
-        }
     }
     int i = 0;
     for (auto cc: CC){
         cout << "Component_" << 1 + i++ << ": ";
-        for (auto n: cc.second){
+        for (auto n: cc.second)
             cout << n->value << " ";
-        }
         cout << endl;
     }
 }
@@ -357,12 +350,24 @@ void Graph<T>::CCDFS(){
 template<class T>
 void Graph<T>::CCBFS(){
     this->BFS((*LIST.begin()).second.first);
-    int CC_num = 0;
+    map<int, list<const Node<T>*>> CC;
     for (auto l: LIST){
-        if (l.second.first->pred == NULL) CC_num++;
+        if (l.second.first->pred == NULL) 
+            CC[l.second.first->id].emplace_back(l.second.first);
         this->SetCollapsing(l.second.first);
     }
-    cout << "-\nthe number of connected component: " << CC_num << endl;
+    cout << "-\nthe number of connected component: " << CC.size() << endl;
+    for (auto l: LIST){
+        if (l.second.first->pred != NULL && CC.find(l.second.first->pred->id) != CC.end())
+            CC[l.second.first->pred->id].emplace_back(l.second.first);
+    }
+    int i = 0;
+    for (auto cc: CC){
+        cout << "Component_" << 1 + i++ << ": ";
+        for (auto n: cc.second)
+            cout << n->value << " ";
+        cout << endl;
+    }
 }
 
 int main(){
@@ -395,6 +400,6 @@ int main(){
     graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
     graph2.connect(zero, one); graph2.connect(one, four); graph2.connect(one, five); graph2.connect(four, five);
     graph2.connect(five, seven); graph2.connect(three, six); graph2.connect(six, eight); 
-    graph2.CCDFS();
+    graph2.CCBFS();
     graph2.print_all();
 }
