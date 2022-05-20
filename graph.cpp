@@ -1,8 +1,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 #define endl '\n'
-#define WHITE 0
-#define GRAY 1 // visited
+#define WHITE 0 // not found yet
+#define GRAY 1  // visited
 #define BLACK 2 // finish
 
 static int gid = 0, TIME = 0;
@@ -47,8 +47,8 @@ class Graph{
     void BFS_traverse(list<const Node<T>*> &queue);
     void BFS(const Node<T> *a);
     void SetCollapsing(const Node<T>* node);
-    void CCDFS();
-    void CCBFS(); // find connected components in undirected graph
+    void CCDFS(); // find connected components in undirected graph
+    void CCBFS(); 
     void print_all() const;
     void color_reset() const;
 };
@@ -326,7 +326,7 @@ void Graph<T>::SetCollapsing(const Node<T>* node){
 
 template<class T>
 void Graph<T>::CCDFS(){
-    this->DFS((*LIST.begin()).second.first);
+    this->DFS((*LIST.begin()).second.first); // DFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
     for (auto l: LIST){
         if (l.second.first->pred == NULL)
@@ -349,7 +349,7 @@ void Graph<T>::CCDFS(){
 
 template<class T>
 void Graph<T>::CCBFS(){
-    this->BFS((*LIST.begin()).second.first);
+    this->BFS((*LIST.begin()).second.first); // BFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
     for (auto l: LIST){
         if (l.second.first->pred == NULL) 
