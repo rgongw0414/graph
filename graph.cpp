@@ -1,6 +1,10 @@
 #include <bits/stdc++.h>
 using namespace std;
 #define endl '\n'
+#define WHITE 0
+#define IN_QUEUE 1.5 // in queue, but not visited yet.
+#define GRAY 1 // visited
+#define BLACK 2 // finish
 
 static int gid = 0, TIME = 0;
 
@@ -13,8 +17,8 @@ class Node{
     vector<int> ptrBy; // ids, for removeNode in directed graph, e.g. consider edge(A, B), B is pointed by A, hence push A's id to ptrBy of B.
     pair<int, int> TIME; //  discover, finish
     Node* pred; // predecessor
-    Node():id(gid++), color(0), TIME(make_pair(0, 0)), pred(NULL){}
-    Node(T v):id(gid++), color(0), value(v), TIME(make_pair(0, 0)), pred(NULL){}
+    Node():id(gid++), color(WHITE), TIME(make_pair(0, 0)), pred(NULL){}
+    Node(T v):id(gid++), color(WHITE), value(v), TIME(make_pair(0, 0)), pred(NULL){}
     friend bool operator==(const Node<T> a, const Node<T> b){
         return a.id == b.id && a.color == b.color && a.value == b.value;
     }
@@ -41,6 +45,8 @@ class Graph{
     void removeEdge_d(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
     void DFS_traverse(const Node<T> *a);
     void DFS(const Node<T> *a);
+    void BFS_traverse(list<const Node<T>*> &queue);
+    void BFS(const Node<T> *a);
     void print_all() const;
     void color_reset() const;
 };
@@ -197,7 +203,7 @@ template<class T>
 void Graph<T>::color_reset() const{
     // set all nodes' color to white, i.e. set to 0
     for (auto &l: LIST){
-        (const_cast<Node<T>*>(l.second.first))->color = 0;
+        (const_cast<Node<T>*>(l.second.first))->color = WHITE;
     }
 }
 
@@ -205,22 +211,22 @@ template<class T>
 void Graph<T>::DFS_traverse(const Node<T> *node){
     auto a = const_cast<Node<T>*>(node);
     if (LIST.find(a->id) == LIST.end()) return;
-    a->color = 1; // set node to gray
+    a->color = GRAY; // set node to gray
     a->TIME.first = ::TIME++;
     cout << "\tid_" << a->id << ", value: " << a->value << endl;
     for (auto &b: LIST[a->id].second){
         // NOTE: undirected graph only have either Tree edge or Back edge
-        if (b->color == 0){
+        if (b->color == WHITE){
             // cout << "tree edge: (" << a->value << ", " << b->value << ")\n";
             (const_cast<Node<T>*>(b))->pred = a;
             DFS_traverse(b);
         }
-        else if (b->color == 1){
+        else if (b->color == WHITE){
             // cout << "back edge: (" << a->value << ", " << b->value << ")\n";
             if (directed() && acyclic()) this->Acyclic = false;
             else if (!directed() && acyclic()){
                 // undirected graph cycle detection
-                if (a->pred->color == 1 && b != a->pred){
+                if (a->pred->color == WHITE && b != a->pred){
                     // cycle detected
                     this->Acyclic = false;
                 }
@@ -235,7 +241,7 @@ void Graph<T>::DFS_traverse(const Node<T> *node){
             }
         }
     }
-    a->color = 2; // set node to black
+    a->color = BLACK; // set node to black
     a->TIME.second = ::TIME++;
 }
 
@@ -245,8 +251,53 @@ void Graph<T>::DFS(const Node<T> *node){
     DFS_traverse(node);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
     for (auto l: LIST){
-        if (l.second.first->color == 0){
+        if (l.second.first->color == WHITE){
             DFS_traverse(l.second.first);
+        }
+    }
+    color_reset();
+    ::TIME = 0;
+}
+
+template<class T>
+void Graph<T>::BFS_traverse(list<const Node<T>*> &queue){
+    if (queue.empty()) return;
+    auto node = const_cast<Node<T>*>(queue.front());
+    queue.pop_front();
+    node->color = GRAY;
+    // node->TIME.first = ::TIME++;
+    cout << "\tid_" << node->id << ", value: " << node->value << endl;
+    const auto adj_nodes = (*LIST.find(node->id)).second.second;
+    for (auto adj_node: adj_nodes){
+        if (adj_node->color == IN_QUEUE) continue;
+        else if (adj_node->color == WHITE) {
+            (const_cast<Node<T>*>(adj_node))->pred = node;
+            (const_cast<Node<T>*>(adj_node))->color = IN_QUEUE;
+            queue.emplace_back(adj_node);
+        }
+    }
+    BFS_traverse(queue);
+    node->color = BLACK;
+    // node->TIME.second = ::TIME++;
+}
+
+template<class T>
+void Graph<T>::BFS(const Node<T> *node){
+    const auto n = LIST.find(node->id);
+    if (n == LIST.end()){
+        cout << "node not found\n";
+        return;
+    }
+    list<const Node<T>*> queue; // FIFO
+    if (node->color == WHITE){
+        queue.emplace_back(node);
+        BFS_traverse(queue);
+    }
+    // cout << "-\ndo BFS to nodes that haven't been visited: \n";
+    for (auto l: LIST){
+        if (l.second.first->color == WHITE){
+            queue.emplace_back(l.second.first);
+            BFS_traverse(queue);
         }
     }
     color_reset();
@@ -264,14 +315,15 @@ int main(){
     // graph.print_all();
     // graph.removeNode_d(b);
     // graph.removeEdge_d(a, c);
-    graph.DFS(a);
+    // graph.DFS(a);
+    graph.BFS(a);
     graph.print_all();
-    Graph<int> graph2 = Graph<int>();
-    Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
-    graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two);
-    graph2.insertNode(three); 
-    graph2.connect(zero, one); graph2.connect(one, two);
-    graph2.connect(two, three); graph2.connect(zero, three); 
-    graph2.DFS(zero);
-    graph2.print_all();
+    // Graph<int> graph2 = Graph<int>();
+    // Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
+    // graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two);
+    // graph2.insertNode(three); 
+    // graph2.connect(zero, one); graph2.connect(one, two);
+    // graph2.connect(two, three); graph2.connect(zero, three); 
+    // graph2.DFS(zero);
+    // graph2.print_all();
 }
