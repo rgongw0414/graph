@@ -46,6 +46,9 @@ class Graph{
     void DFS(const Node<T> *a);
     void BFS_traverse(list<const Node<T>*> &queue);
     void BFS(const Node<T> *a);
+    void SetCollapsing(const Node<T>* node);
+    void CCDFS();
+    void CCBFS(); // find connected components in undirected graph
     void print_all() const;
     void color_reset() const;
 };
@@ -311,11 +314,62 @@ void Graph<T>::BFS(const Node<T> *node){
     ::TIME = 0;
 }
 
+template<class T>
+void Graph<T>::SetCollapsing(const Node<T>* node){
+    auto current = const_cast<Node<T>*>(node);
+    auto root = current;
+    while (root->pred != NULL)
+        root = root->pred;
+    // cout << "root: " << root->value << ", current: " << current->value << ", parrent: " << parent->value << endl;
+    while (current != root){
+        auto parent = current->pred;
+        current->pred = root;    
+        current = parent;
+    }
+}
+
+template<class T>
+void Graph<T>::CCDFS(){
+    this->DFS((*LIST.begin()).second.first);
+    map<int, list<const Node<T>*>> CC;
+    for (auto l: LIST){
+        if (l.second.first->pred == NULL){
+            CC[l.second.first->id].emplace_back(l.second.first);
+        }
+        this->SetCollapsing(l.second.first);
+    }
+    cout << "-\nthe number of connected component: " << CC.size() << endl;
+    for (auto l: LIST){
+        if (l.second.first->pred != NULL && CC.find(l.second.first->pred->id) != CC.end()){
+            CC[l.second.first->pred->id].emplace_back(l.second.first);
+        }
+    }
+    int i = 0;
+    for (auto cc: CC){
+        cout << "Component_" << 1 + i++ << ": ";
+        for (auto n: cc.second){
+            cout << n->value << " ";
+        }
+        cout << endl;
+    }
+}
+
+template<class T>
+void Graph<T>::CCBFS(){
+    this->BFS((*LIST.begin()).second.first);
+    int CC_num = 0;
+    for (auto l: LIST){
+        if (l.second.first->pred == NULL) CC_num++;
+        this->SetCollapsing(l.second.first);
+    }
+    cout << "-\nthe number of connected component: " << CC_num << endl;
+}
+
 int main(){
     // Graph<char> graph = Graph<char>();
-    Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
-    Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
-    Node<char> *i = new Node<char>('I');
+    // Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
+    // Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
+    // Node<char> *i = new Node<char>('I');
     // graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
     // graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
     // graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
@@ -324,22 +378,23 @@ int main(){
     // graph.BFS(a);
     // graph.print_all();
 
-    Graph<char> graph3 = Graph<char>();
-    graph3.insertNode(a); graph3.insertNode(b); graph3.insertNode(c); graph3.insertNode(d);
-    graph3.insertNode(e); graph3.insertNode(f); graph3.insertNode(g); graph3.insertNode(h);
-    graph3.insertNode(i);
-    graph3.connect(a, b); graph3.connect(a, c); graph3.connect(a, d); graph3.connect(b, e); 
-    graph3.connect(c, e); graph3.connect(c, f); graph3.connect(c, g); graph3.connect(c, h); 
-    graph3.connect(d, h); graph3.connect(h, g); graph3.connect(e, f); graph3.connect(f, i); graph3.connect(g, i); 
-    graph3.BFS(a);
-    graph3.print_all();
+    // Graph<char> graph3 = Graph<char>();
+    // graph3.insertNode(a); graph3.insertNode(b); graph3.insertNode(c); graph3.insertNode(d);
+    // graph3.insertNode(e); graph3.insertNode(f); graph3.insertNode(g); graph3.insertNode(h);
+    // graph3.insertNode(i);
+    // graph3.connect(a, b); graph3.connect(a, c); graph3.connect(a, d); graph3.connect(b, e); 
+    // graph3.connect(c, e); graph3.connect(c, f); graph3.connect(c, g); graph3.connect(c, h); 
+    // graph3.connect(d, h); graph3.connect(h, g); graph3.connect(e, f); graph3.connect(f, i); graph3.connect(g, i); 
+    // graph3.BFS(a);
+    // graph3.print_all();
 
-    // Graph<int> graph2 = Graph<int>();
-    // Node<int> *zero = new Node<int>(0);  Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
-    // graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two);
-    // graph2.insertNode(three); 
-    // graph2.connect(zero, one); graph2.connect(one, two);
-    // graph2.connect(two, three); graph2.connect(zero, three); 
-    // graph2.DFS(zero);
-    // graph2.print_all();
+    Graph<int> graph2 = Graph<int>();
+    Node<int> *zero = new Node<int>(0); Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
+    Node<int> *four = new Node<int>(4); Node<int> *five = new Node<int>(5); Node<int> *six = new Node<int>(6); Node<int> *seven = new Node<int>(7); Node<int> *eight = new Node<int>(8); 
+    graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
+    graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
+    graph2.connect(zero, one); graph2.connect(one, four); graph2.connect(one, five); graph2.connect(four, five);
+    graph2.connect(five, seven); graph2.connect(three, six); graph2.connect(six, eight); 
+    graph2.CCDFS();
+    graph2.print_all();
 }
