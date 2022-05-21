@@ -47,8 +47,10 @@ class Graph{
     void BFS_traverse(list<const Node<T>*> &queue);
     void BFS(const Node<T> *a);
     void SetCollapsing(const Node<T>* node);
-    void CCDFS(); // find connected components in undirected graph
+    void CCDFS(); // find connected components in undirected graph, with SetCollapsing.
+    void CCDFS2(); // find CC only with predecessor 
     void CCBFS(); 
+    // void CCBFS2(); // redundant
     void print_all() const;
     void color_reset() const;
 };
@@ -348,6 +350,32 @@ void Graph<T>::CCDFS(){
 }
 
 template<class T>
+void Graph<T>::CCDFS2(){
+    this->DFS((*LIST.begin()).second.first); // DFS first, in order to build pred on each node
+    map<int, list<const Node<T>*>> CC;
+    for (auto l: LIST){
+        if (l.second.first->pred == NULL)
+            CC[l.second.first->id].emplace_back(l.second.first);
+        else{
+            auto current = const_cast<Node<T>*>(l.second.first);
+            while (current->pred->pred != NULL)
+                current = current->pred;
+            if (CC.find(current->pred->id) == CC.end()) 
+                CC[current->pred->id].emplace_back(current->pred);
+            CC[current->pred->id].emplace_back(l.second.first);
+        }
+    }
+    cout << "-\nthe number of connected component: " << CC.size() << endl;
+    int i = 0;
+    for (auto cc: CC){
+        cout << "Component_" << 1 + i++ << ": ";
+        for (auto n: cc.second)
+            cout << n->value << " ";
+        cout << endl;
+    }
+}
+
+template<class T>
 void Graph<T>::CCBFS(){
     this->BFS((*LIST.begin()).second.first); // BFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
@@ -371,17 +399,17 @@ void Graph<T>::CCBFS(){
 }
 
 int main(){
-    // Graph<char> graph = Graph<char>();
-    // Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
-    // Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
-    // Node<char> *i = new Node<char>('I');
-    // graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
-    // graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
-    // graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
-    // graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
-    // // graph.DFS(a);
-    // graph.BFS(a);
-    // graph.print_all();
+    Graph<char> graph = Graph<char>();
+    Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
+    Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
+    Node<char> *i = new Node<char>('I');
+    graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
+    graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
+    graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
+    graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
+    // graph.DFS(a);
+    graph.CCDFS2();
+    graph.print_all();
 
     // Graph<char> graph3 = Graph<char>();
     // graph3.insertNode(a); graph3.insertNode(b); graph3.insertNode(c); graph3.insertNode(d);
@@ -400,6 +428,6 @@ int main(){
     graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
     graph2.connect(zero, one); graph2.connect(one, four); graph2.connect(one, five); graph2.connect(four, five);
     graph2.connect(five, seven); graph2.connect(three, six); graph2.connect(six, eight); 
-    graph2.CCBFS();
+    graph2.CCDFS2();
     graph2.print_all();
 }
