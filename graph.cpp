@@ -417,8 +417,8 @@ void Graph<T>::SCCDFS(const Node<T> *node){
         nodes.emplace_back(l.second.first);
     }
     nodes.sort(comp_finish_time<T>);
-    this->DFS(node, nodes); // 
-    map<int, list<const Node<T>*>> CC; // 
+    this->DFS(nodes.front(), nodes); // NOTE: only works for the component, which has minimal finish time in G^T (maximal finish time in G).
+    map<int, list<const Node<T>*>> CC; 
     for (auto &l: LIST){
         if (l.second.first->pred == NULL)
             CC[l.second.first->id].emplace_back(l.second.first);
@@ -462,9 +462,9 @@ void Graph<T>::print_CC(std::map<int, list<const Node<T>*>> CC){
 
 int main(){
     // Graph<char> graph = Graph<char>();
-    Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
-    Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
-    Node<char> *i = new Node<char>('I');
+    // Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
+    // Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
+    // Node<char> *i = new Node<char>('I');
     // graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
     // graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
     // graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
@@ -480,7 +480,7 @@ int main(){
     graph2.connect_d(zero, one); graph2.connect_d(one, two); graph2.connect_d(one, four); graph2.connect_d(two, zero); graph2.connect_d(two, three); graph2.connect_d(two, five); 
     graph2.connect_d(three, two); graph2.connect_d(four, five); graph2.connect_d(four, six); graph2.connect_d(five, four); graph2.connect_d(five, six); graph2.connect_d(five, seven); 
     graph2.connect_d(six, seven); graph2.connect_d(seven, eight); graph2.connect_d(eight, six); 
-    graph2.SCCDFS(zero);
+    graph2.SCCDFS(eight);
     graph2.print_all();
 
     // Graph<int> graph3 = Graph<int>();
