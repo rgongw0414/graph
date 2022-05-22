@@ -13,11 +13,13 @@ class Node{
     int id;
     int color; // 0: white, 1: gray, 2: black
     T value;
+    map<int, list<float>> wEdge; // list of weighted edges
     vector<int> ptrBy; // ids, for removeNode in directed graph, e.g. consider edge(A, B), B is pointed by A, hence push A's id to ptrBy of B.
     pair<int, int> TIME; //  discover, finish
     Node* pred; // predecessor
     Node():id(gid++), color(WHITE), TIME(make_pair(-1, -1)), pred(NULL){}
     Node(T v):id(gid++), color(WHITE), value(v), TIME(make_pair(-1, -1)), pred(NULL){}
+    // Node(T v, float w):id(gid++), color(WHITE), value(v), weight(w), TIME(make_pair(-1, -1)), pred(NULL){}
     friend bool operator==(const Node<T> a, const Node<T> b){
         return a.id == b.id && a.color == b.color && a.value == b.value;
     }
@@ -30,14 +32,18 @@ class Graph{
     > LIST; // adj list of graph
     bool Acyclic; // default acyclic, once find back edge, set to cyclic.
     bool Directed;
+    bool Weighted;
     public:
-    Graph():Acyclic(true), Directed(false){}
+    Graph():Acyclic(true), Directed(false), Weighted(false){}
     bool acyclic() const;
     bool directed() const;
+    bool weighted() const;
     void insertNode(const T value);
     void insertNode(const Node<T> *node);
-    void connect(const Node<T> *a, const Node<T> *b); // create an edge between a & b
-    void connect_d(const Node<T> *a, const Node<T> *b); // create an edge between a & b
+    // void connect(const Node<T> *a, const Node<T> *b); // create an edge between a & b
+    void connect(const Node<T> *a, const Node<T> *b, float weight = 0); // create weighted undirected edge
+    // void connect_d(const Node<T> *a, const Node<T> *b); // create an edge between a & b
+    void connect_d(const Node<T> *a, const Node<T> *b, float weight = 0); // create weighted directed edge
     void removeNode(const Node<T> *node);
     void removeNode_d(const Node<T> *node);
     void removeEdge(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
@@ -56,6 +62,8 @@ class Graph{
     // void CCBFS2(); // redundant
     void topological_sort();
     void topological_sort(const Node<T>* start);
+    void MST_Kruskal(const Node<T>* start);
+    void MST_Prim();
     void print_CC(map<int, list<const Node<T>*>> CC);
     void print_all() const;
     void color_reset() const;
@@ -69,6 +77,11 @@ bool Graph<T>::acyclic() const{
 template<class T>
 bool Graph<T>::directed() const{
     return this->Directed;
+}
+
+template<class T>
+bool Graph<T>::weighted() const{
+    return this->Weighted;
 }
 
 template<class T>
@@ -91,13 +104,17 @@ void Graph<T>::insertNode(const Node<T> *node){
 }
 
 template<class T>
-void Graph<T>::connect(const Node<T> *a, const Node<T> *b){
+void Graph<T>::connect(const Node<T> *a, const Node<T> *b, float weight){
     // create edge(a, b) and edge(b, a)
     const bool foundA = (LIST.find(a->id) != LIST.end());
     const bool foundB = (LIST.find(b->id) != LIST.end());
     if (foundA && foundB){
         LIST[a->id].second.emplace_back(b);
         LIST[b->id].second.emplace_back(a);
+        if (weight != 0){
+            if (!weighted()) this->Weighted = true;
+            const_cast<Node<T>*>(a)->wEdge[b->id].emplace_back(weight);
+        }
     }
     else{
         if (!foundA) cout << "-\nnode id_" << a->id << " not found\n";
@@ -106,7 +123,7 @@ void Graph<T>::connect(const Node<T> *a, const Node<T> *b){
 }
 
 template<class T>
-void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b){ 
+void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b, float weight){ 
     if (!directed()) Directed = true;
     // create edge(a, b)
     const bool foundA = (LIST.find(a->id) != LIST.end());
@@ -114,6 +131,10 @@ void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b){
     if (foundA && foundB){
         (const_cast<Node<T>*>(b))->ptrBy.emplace_back(a->id); // save id of a, for the use of removeNode
         LIST[a->id].second.emplace_back(b);
+        if (weight != 0){
+            if (!weighted()) this->Weighted = true;
+            a->wEdge[b->id].emplace_back(weight);
+        }
     }
     else{
         if (!foundA) cout << "-\nnode id_" << a->id << " not found\n";
@@ -128,11 +149,34 @@ void Graph<T>::print_all() const{
     if (directed()) cout << "directed graph\n";
     else cout << "undirected graph\n";
     for (auto &i: LIST){
-        int pred = (i.second.first->pred) ? i.second.first->pred->id : -1; // if predecessor is NULL, then print as -1
-        cout << "id: " << i.second.first->id << ", value: " << i.second.first->value << ", color: " << i.second.first->color 
-        << ", time: <" << i.second.first->TIME.first << ", " << i.second.first->TIME.second << ">, pred: id(" << pred << ")\n";
-        for (auto &j: i.second.second){
-            cout << "\tadj_id: " << j->id << ", adj_value: " << j->value << ", adj_color: " << j->color << endl;
+        auto a = i.second.first;
+        int pred = (a->pred) ? a->pred->id : -1; // if predecessor is NULL, then print as -1
+        cout << "id: " << a->id << ", value: " << a->value << ", color: " << a->color 
+        << ", time: <" << a->TIME.first << ", " << a->TIME.second << ">, pred: id(" << pred << ")\n";
+        
+        for (auto &b: i.second.second){ // b: all a's adj nodes
+            cout << "\tadj_id: " << b->id << ", adj_value: " << b->value << ", adj_color: " << b->color;
+            if (weighted()){
+                cout << ", weight: ";
+                if (a->wEdge.find(b->id) != a->wEdge.end())
+                    for (auto &w: (*a->wEdge.find(b->id)).second)
+                        cout << w << " ";
+                else if (b->wEdge.find(a->id) != b->wEdge.end())
+                    for (auto &w: (*b->wEdge.find(a->id)).second)
+                        cout << w << " ";
+                cout << endl;
+                // if (a->wEdge.find(b->id) != a->wEdge.end()){
+                    // auto l = a->wEdge[b->id];
+//          caused error: passing ‘const std::map<int, std::__cxx11::list<float> >’ as ‘this’ argument discards qualifiers [-fpermissive]
+//   164 |                     auto l = a->wEdge[b->id];
+//       |                              ~~~~~~~~^
+                    // it has to be cast to non-const as bellow
+                    // auto l = const_cast<Node<T>*>(a)->wEdge[b->id];
+                // }
+                // else if (b->wEdge.find(a->id) != b->wEdge.end()) auto l = b->wEdge[a->id];
+                // cout << l.front() << endl;
+            }
+            else cout << endl;
         }
         cout << endl;
     }
@@ -476,6 +520,24 @@ void Graph<T>::CCBFS(){
 }
 
 template<class T>
+void Graph<T>::MST_Kruskal(const Node<T>* start){
+    // while avoid creating cycle, select start_node's adj nodes with min-weight edges.
+    if (directed()) return;
+}
+
+template<class T>
+bool comp_weight(const Node<T>* a, const Node<T>* b){ // sort weight in ascending order
+    return a->weight < b->weight; 
+}
+
+template<class T>
+void Graph<T>::MST_Prim(){
+    // while avoid creating cycle, select min-weight edges in the graph.
+    if (directed()) return;
+
+}
+
+template<class T>
 void Graph<T>::print_CC(std::map<int, list<const Node<T>*>> CC){
     cout << "-\nthe number of connected component: " << CC.size() << endl;
     int i = 0;
@@ -503,24 +565,9 @@ int main(){
     Node<int> *four = new Node<int>(4); Node<int> *five = new Node<int>(5); Node<int> *six = new Node<int>(6); Node<int> *seven = new Node<int>(7); Node<int> *eight = new Node<int>(8); 
     Node<int> *nine = new Node<int>(9); Node<int> *ten = new Node<int>(10); Node<int> *eleven = new Node<int>(11); Node<int> *twelve = new Node<int>(12); Node<int> *thirteen = new Node<int>(13); 
     Node<int> *fourteen = new Node<int>(14); 
-    // graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
-    // graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
-    // graph2.connect_d(zero, one); graph2.connect_d(one, two); graph2.connect_d(one, four); graph2.connect_d(two, zero); graph2.connect_d(two, three); graph2.connect_d(two, five); 
-    // graph2.connect_d(three, two); graph2.connect_d(four, five); graph2.connect_d(four, six); graph2.connect_d(five, four); graph2.connect_d(five, six); graph2.connect_d(five, seven); 
-    // graph2.connect_d(six, seven); graph2.connect_d(seven, eight); graph2.connect_d(eight, six); 
-    // graph2.SCCDFS(eight);
-    // graph2.print_all();
-
-    Graph<int> graph3 = Graph<int>();
-    graph3.insertNode(zero); graph3.insertNode(one); graph3.insertNode(two); graph3.insertNode(three); graph3.insertNode(four); graph3.insertNode(five); 
-    graph3.insertNode(six); graph3.insertNode(seven); graph3.insertNode(eight); graph3.insertNode(nine); graph3.insertNode(ten); graph3.insertNode(eleven);
-    graph3.insertNode(twelve); graph3.insertNode(thirteen); graph3.insertNode(fourteen);
-    graph3.connect_d(zero, two); graph3.connect_d(one, two); graph3.connect_d(two, six); graph3.connect_d(two, seven);
-    graph3.connect_d(three, four); graph3.connect_d(four, five); graph3.connect_d(five, six); graph3.connect_d(five, fourteen); 
-    graph3.connect_d(six, eight); graph3.connect_d(six, nine); graph3.connect_d(six, eleven); graph3.connect_d(six, twelve);
-    graph3.connect_d(seven, eight); graph3.connect_d(nine, ten); graph3.connect_d(twelve, thirteen);
-    graph3.topological_sort();
-    graph3.topological_sort(four);
-    graph3.topological_sort(eleven);
-    // graph3.print_all();
+    graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
+    graph2.insertNode(six); //graph2.insertNode(seven); graph2.insertNode(eight); 
+    graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
+    graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
+    graph2.print_all();
 }
