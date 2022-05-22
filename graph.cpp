@@ -43,8 +43,8 @@ class Graph{
     void removeEdge(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
     void removeEdge_d(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
     void DFS_traverse(const Node<T> *a);
-    void DFS(const Node<T> *a);
-    void DFS(const Node<T> *node, list<const Node<T>*> nodes); // do DFS in customized order, e.g. in descending order of finish time
+    void DFS(const Node<T> *start);
+    void DFS(const Node<T> *start, list<const Node<T>*> nodes); // do DFS in customized order, e.g. in descending order of finish time
     void BFS_traverse(list<const Node<T>*> &queue);
     void BFS(const Node<T> *a);
     void SetCollapsing(const Node<T>* node);
@@ -52,8 +52,10 @@ class Graph{
     void CCDFS2(); // find CC only with predecessor 
     void CCBFS(); 
     void transpose();
-    void SCCDFS(const Node<T> *node);
+    void SCCDFS(const Node<T> *start);
     // void CCBFS2(); // redundant
+    void topological_sort();
+    void topological_sort(const Node<T>* start);
     void print_CC(map<int, list<const Node<T>*>> CC);
     void print_all() const;
     void color_reset() const;
@@ -228,7 +230,7 @@ void Graph<T>::DFS_traverse(const Node<T> *node){
             (const_cast<Node<T>*>(b))->pred = a;
             DFS_traverse(b);
         }
-        else if (b->color == WHITE){
+        else if (b->color == GRAY){
             // cout << "back edge: (" << a->value << ", " << b->value << ")\n";
             if (directed() && acyclic()) this->Acyclic = false;
             else if (!directed() && acyclic()){
@@ -239,7 +241,7 @@ void Graph<T>::DFS_traverse(const Node<T> *node){
                 }
             }
         }
-        else{ // compare discover time
+        else if (b->color == BLACK){ // compare discover time
             if (a->TIME.first < b->TIME.first){
                 // cout << "forward edge: (" << a->value << ", " << b->value << ")\n";
             }
@@ -253,9 +255,9 @@ void Graph<T>::DFS_traverse(const Node<T> *node){
 }
 
 template<class T>
-void Graph<T>::DFS(const Node<T> *node){
+void Graph<T>::DFS(const Node<T> *start){
     cout << "-\nDFS:\n";
-    DFS_traverse(node);
+    DFS_traverse(start);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
     for (auto &l: LIST){
         if (l.second.first->color == WHITE)
@@ -266,9 +268,10 @@ void Graph<T>::DFS(const Node<T> *node){
 }
 
 template<class T>
-void Graph<T>::DFS(const Node<T> *node, list<const Node<T>*> nodes){ // do DFS in customized order, e.g. in descending order of finish time
+void Graph<T>::DFS(const Node<T> *start, list<const Node<T>*> nodes){ // do DFS in customized order, e.g. in descending order of finish time
+    for (auto &l: LIST) const_cast<Node<T>*>(l.second.first)->pred = NULL; // reset predecessor, for the need of multiple times DFS.
     cout << "-\nDFS:\n";
-    DFS_traverse(node);
+    DFS_traverse(start);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
     for (auto &n: nodes){
         if (n->color == WHITE)
@@ -281,10 +284,7 @@ void Graph<T>::DFS(const Node<T> *node, list<const Node<T>*> nodes){ // do DFS i
 template<class T>
 void Graph<T>::BFS_traverse(list<const Node<T>*> &queue){
     if (queue.empty()) return;
-    // cout << "queue: \n(front) <- ";
-    // for (auto n: queue)
-    //     cout << n->value << " ";
-    // cout << "<- (back)" << endl;
+    // cout << "queue: \n(front) <- "; for (auto n: queue) cout << n->value << " "; cout << "<- (back)" << endl;
     auto node = const_cast<Node<T>*>(queue.front());
     queue.pop_front();
     node->color = BLACK;
@@ -303,18 +303,19 @@ void Graph<T>::BFS_traverse(list<const Node<T>*> &queue){
 }
 
 template<class T>
-void Graph<T>::BFS(const Node<T> *node){
-    const auto n = LIST.find(node->id);
+void Graph<T>::BFS(const Node<T> *start){
+    const auto n = LIST.find(start->id);
     if (n == LIST.end()){
         cout << "node not found\n";
         return;
     }
+    for (auto &l: LIST) const_cast<Node<T>*>(l.second.first)->pred = NULL; // reset predecessor, for the need of multiple times BFS.
     cout << "-\nBFS:\n";
     list<const Node<T>*> queue; // FIFO
-    if (node->color == WHITE){
-        (const_cast<Node<T>*>(node))->color = GRAY;
-        (const_cast<Node<T>*>(node))->TIME.first = ::TIME++;
-        queue.emplace_back(node);
+    if (start->color == WHITE){
+        (const_cast<Node<T>*>(start))->color = GRAY;
+        (const_cast<Node<T>*>(start))->TIME.first = ::TIME++;
+        queue.emplace_back(start);
         BFS_traverse(queue);
     }
     // cout << "-\ndo BFS to nodes that haven't been visited: \n";
@@ -347,7 +348,8 @@ void Graph<T>::SetCollapsing(const Node<T>* node){
 template<class T>
 void Graph<T>::CCDFS(){
     if (this->directed()) return;
-    this->DFS((*LIST.begin()).second.first); // DFS first, in order to build pred on each node
+    auto start = (*LIST.begin()).second.first;
+    this->DFS(start); // DFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
     for (auto &l: LIST){
         if (l.second.first->pred == NULL)
@@ -364,7 +366,8 @@ void Graph<T>::CCDFS(){
 template<class T>
 void Graph<T>::CCDFS2(){
     if (this->directed()) return;
-    this->DFS((*LIST.begin()).second.first); // DFS first, in order to build pred on each node
+    auto start = (*LIST.begin()).second.first;
+    this->DFS(start); // DFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
     for (auto &l: LIST){
         if (l.second.first->pred == NULL){
@@ -407,16 +410,13 @@ bool comp_finish_time(const Node<T>* a, const Node<T>* b){
 }
 
 template<class T>
-void Graph<T>::SCCDFS(const Node<T> *node){
+void Graph<T>::SCCDFS(const Node<T> *start){
     if (!this->directed()) return;
-    this->DFS(node); // DFS_1, to build finish time of nodes. O(V)
+    this->DFS(start); // DFS_1, to build finish time of nodes. O(V)
     this->transpose(); // O(E)
     list<const Node<T>*> nodes;
-    for (auto &l: LIST){
-        const_cast<Node<T>*>(l.second.first)->pred = NULL;
-        nodes.emplace_back(l.second.first);
-    }
-    nodes.sort(comp_finish_time<T>);
+    for (auto &l: LIST) nodes.emplace_back(l.second.first);
+    nodes.sort(comp_finish_time<T>); // O(N*log(N))
     this->DFS(nodes.front(), nodes); // NOTE: only works for the component, which has minimal finish time in G^T (maximal finish time in G).
     map<int, list<const Node<T>*>> CC; 
     for (auto &l: LIST){
@@ -429,12 +429,39 @@ void Graph<T>::SCCDFS(const Node<T> *node){
             CC[l.second.first->pred->id].emplace_back(l.second.first);
     }
     print_CC(CC);
+    this->transpose(); // resume the graph's adj_list
+}
+
+template<class T>
+void Graph<T>::topological_sort(){
+    auto start = (*LIST.begin()).second.first;
+    this->DFS(start); // DFS first, in order to build finish time on each node
+    if (!acyclic()) return;
+    list<const Node<T>*> topology;
+    for (auto &l: LIST) topology.emplace_back(l.second.first);
+    topology.sort(comp_finish_time<T>); // O(N*log(N))
+    cout << "-\nTopological Sort: ";
+    for (auto &t: topology) cout << t->value << " ";
+    cout << endl;
+}
+
+template<class T>
+void Graph<T>::topological_sort(const Node<T>* start){ // only for DAG (directed acyclic graph)
+    this->DFS(start); // DFS first, in order to build finish time on each node, and check whether acyclic or not.
+    if (!acyclic()) return;
+    list<const Node<T>*> topology;
+    for (auto &l: LIST) topology.emplace_back(l.second.first);
+    topology.sort(comp_finish_time<T>); // O(N*log(N))
+    cout << "-\nTopological Sort: ";
+    for (auto &t: topology) cout << t->value << " ";
+    cout << endl;
 }
 
 template<class T>
 void Graph<T>::CCBFS(){
     if (this->directed()) return;
-    this->BFS((*LIST.begin()).second.first); // BFS first, in order to build pred on each node
+    auto start = (*LIST.begin()).second.first;
+    this->BFS(start); // BFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
     for (auto &l: LIST){
         if (l.second.first->pred == NULL) 
@@ -454,8 +481,7 @@ void Graph<T>::print_CC(std::map<int, list<const Node<T>*>> CC){
     int i = 0;
     for (auto &cc: CC){
         cout << "Component_" << 1 + i++ << ": ";
-        for (auto &n: cc.second)
-            cout << n->value << " ";
+        for (auto &n: cc.second) cout << n->value << " ";
         cout << endl;
     }
 }
@@ -475,19 +501,26 @@ int main(){
     Graph<int> graph2 = Graph<int>();
     Node<int> *zero = new Node<int>(0); Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
     Node<int> *four = new Node<int>(4); Node<int> *five = new Node<int>(5); Node<int> *six = new Node<int>(6); Node<int> *seven = new Node<int>(7); Node<int> *eight = new Node<int>(8); 
-    graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
-    graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
-    graph2.connect_d(zero, one); graph2.connect_d(one, two); graph2.connect_d(one, four); graph2.connect_d(two, zero); graph2.connect_d(two, three); graph2.connect_d(two, five); 
-    graph2.connect_d(three, two); graph2.connect_d(four, five); graph2.connect_d(four, six); graph2.connect_d(five, four); graph2.connect_d(five, six); graph2.connect_d(five, seven); 
-    graph2.connect_d(six, seven); graph2.connect_d(seven, eight); graph2.connect_d(eight, six); 
-    graph2.SCCDFS(eight);
-    graph2.print_all();
+    Node<int> *nine = new Node<int>(9); Node<int> *ten = new Node<int>(10); Node<int> *eleven = new Node<int>(11); Node<int> *twelve = new Node<int>(12); Node<int> *thirteen = new Node<int>(13); 
+    Node<int> *fourteen = new Node<int>(14); 
+    // graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
+    // graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
+    // graph2.connect_d(zero, one); graph2.connect_d(one, two); graph2.connect_d(one, four); graph2.connect_d(two, zero); graph2.connect_d(two, three); graph2.connect_d(two, five); 
+    // graph2.connect_d(three, two); graph2.connect_d(four, five); graph2.connect_d(four, six); graph2.connect_d(five, four); graph2.connect_d(five, six); graph2.connect_d(five, seven); 
+    // graph2.connect_d(six, seven); graph2.connect_d(seven, eight); graph2.connect_d(eight, six); 
+    // graph2.SCCDFS(eight);
+    // graph2.print_all();
 
-    // Graph<int> graph3 = Graph<int>();
-    // graph3.insertNode(zero); graph3.insertNode(one); graph3.insertNode(two); graph3.insertNode(three); graph3.insertNode(four); graph3.insertNode(five); 
-    // graph3.insertNode(six); graph3.insertNode(seven); graph3.insertNode(eight); 
-    // graph3.connect(zero, one); graph3.connect(one, four); graph3.connect(one, five); graph3.connect(four, five);
-    // graph3.connect(five, seven); graph3.connect(three, six); graph3.connect(six, eight); 
-    // graph3.CCDFS2();
+    Graph<int> graph3 = Graph<int>();
+    graph3.insertNode(zero); graph3.insertNode(one); graph3.insertNode(two); graph3.insertNode(three); graph3.insertNode(four); graph3.insertNode(five); 
+    graph3.insertNode(six); graph3.insertNode(seven); graph3.insertNode(eight); graph3.insertNode(nine); graph3.insertNode(ten); graph3.insertNode(eleven);
+    graph3.insertNode(twelve); graph3.insertNode(thirteen); graph3.insertNode(fourteen);
+    graph3.connect_d(zero, two); graph3.connect_d(one, two); graph3.connect_d(two, six); graph3.connect_d(two, seven);
+    graph3.connect_d(three, four); graph3.connect_d(four, five); graph3.connect_d(five, six); graph3.connect_d(five, fourteen); 
+    graph3.connect_d(six, eight); graph3.connect_d(six, nine); graph3.connect_d(six, eleven); graph3.connect_d(six, twelve);
+    graph3.connect_d(seven, eight); graph3.connect_d(nine, ten); graph3.connect_d(twelve, thirteen);
+    graph3.topological_sort();
+    graph3.topological_sort(four);
+    graph3.topological_sort(eleven);
     // graph3.print_all();
 }
