@@ -40,9 +40,7 @@ class Graph{
     bool weighted() const;
     void insertNode(const T value);
     void insertNode(const Node<T> *node);
-    // void connect(const Node<T> *a, const Node<T> *b); // create an edge between a & b
     void connect(const Node<T> *a, const Node<T> *b, float weight = 0); // create weighted undirected edge
-    // void connect_d(const Node<T> *a, const Node<T> *b); // create an edge between a & b
     void connect_d(const Node<T> *a, const Node<T> *b, float weight = 0); // create weighted directed edge
     void removeNode(const Node<T> *node);
     void removeNode_d(const Node<T> *node);
@@ -55,11 +53,10 @@ class Graph{
     void BFS(const Node<T> *a);
     void SetCollapsing(const Node<T>* node);
     void CCDFS(); // find connected components in "undirected graph", with SetCollapsing.
-    void CCDFS2(); // find CC only with predecessor 
+    void CCDFS2(); // find CC only by predecessors
     void CCBFS(); 
     void transpose();
-    void SCCDFS(const Node<T> *start);
-    // void CCBFS2(); // redundant
+    void SCCDFS(const Node<T> *start); //  find strongly connected components in "directed graph", by two DFS, transpose, and sort by finish time.
     void topological_sort();
     void topological_sort(const Node<T>* start);
     void MST_Kruskal(const Node<T>* start);
@@ -166,15 +163,12 @@ void Graph<T>::print_all() const{
                         cout << w << " ";
                 cout << endl;
                 // if (a->wEdge.find(b->id) != a->wEdge.end()){
-                    // auto l = a->wEdge[b->id];
-//          caused error: passing ‘const std::map<int, std::__cxx11::list<float> >’ as ‘this’ argument discards qualifiers [-fpermissive]
-//   164 |                     auto l = a->wEdge[b->id];
-//       |                              ~~~~~~~~^
+                    // auto l = a->wEdge[b->id]; 
+                    //          ~~~~~~~~^ caused error: passing ‘const std::map<int, std::__cxx11::list<float> >’ as ‘this’ argument discards qualifiers [-fpermissive]
                     // it has to be cast to non-const as bellow
                     // auto l = const_cast<Node<T>*>(a)->wEdge[b->id];
                 // }
-                // else if (b->wEdge.find(a->id) != b->wEdge.end()) auto l = b->wEdge[a->id];
-                // cout << l.front() << endl;
+                // else if (b->wEdge.find(a->id) != b->wEdge.end()) auto l = b->wEdge[a->id]; // cout << l.front() << endl;
             }
             else cout << endl;
         }
