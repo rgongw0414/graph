@@ -48,7 +48,7 @@ class Graph{
     void removeEdge_d(const Node<T> *a, const Node<T> *b); // delete the edge between a & b
     void DFS_traverse(const Node<T> *a);
     void DFS(const Node<T> *start);
-    void DFS(const Node<T> *start, list<const Node<T>*> nodes); // do DFS in customized order, e.g. in descending order of finish time
+    void DFS(const Node<T> *start, list<const Node<T>*> &nodes); // do DFS in customized order, e.g. in descending order of finish time
     void BFS_traverse(list<const Node<T>*> &queue);
     void BFS(const Node<T> *a);
     void SetCollapsing(const Node<T>* node);
@@ -61,25 +61,19 @@ class Graph{
     void topological_sort(const Node<T>* start);
     void MST_Kruskal(const Node<T>* start);
     void MST_Prim();
-    void print_CC(map<int, list<const Node<T>*>> CC);
+    void print_CC(map<int, list<const Node<T>*>> &CC);
     void print_all() const;
     void color_reset() const;
 };
 
 template<class T>
-bool Graph<T>::acyclic() const{
-    return this->Acyclic;
-}
+bool Graph<T>::acyclic() const{ return this->Acyclic; }
 
 template<class T>
-bool Graph<T>::directed() const{
-    return this->Directed;
-}
+bool Graph<T>::directed() const{ return this->Directed; }
 
 template<class T>
-bool Graph<T>::weighted() const{
-    return this->Weighted;
-}
+bool Graph<T>::weighted() const{ return this->Weighted; }
 
 template<class T>
 void Graph<T>::insertNode(const T value){
@@ -156,11 +150,9 @@ void Graph<T>::print_all() const{
             if (weighted()){
                 cout << ", weight: ";
                 if (a->wEdge.find(b->id) != a->wEdge.end())
-                    for (auto &w: (*a->wEdge.find(b->id)).second)
-                        cout << w << " ";
+                    for (auto &w: (*a->wEdge.find(b->id)).second) cout << w << " ";
                 else if (b->wEdge.find(a->id) != b->wEdge.end())
-                    for (auto &w: (*b->wEdge.find(a->id)).second)
-                        cout << w << " ";
+                    for (auto &w: (*b->wEdge.find(a->id)).second) cout << w << " ";
                 cout << endl;
                 // if (a->wEdge.find(b->id) != a->wEdge.end()){
                     // auto l = a->wEdge[b->id]; 
@@ -184,12 +176,8 @@ void Graph<T>::removeNode(const Node<T> *node){
     for (auto &n: (*a).second.second){ // iterate through node's all adj nodes
         // NOTE: if not simple graph, remember to remove all edges.
         auto b = find(LIST[n->id].second.begin(), LIST[n->id].second.end(), node); // remove node's adj edge
-        if (b != LIST[n->id].second.end()){
-            LIST[n->id].second.erase(b);
-        }
-        else{
-            cout << "-\nedge(" << n->id << ", " << node->id << ") not found\n";
-        }
+        if (b != LIST[n->id].second.end()) LIST[n->id].second.erase(b);
+        else cout << "-\nedge(" << n->id << ", " << node->id << ") not found\n";
     }
     LIST.erase(a); // what's the content after erase ?
     delete(node);
@@ -203,12 +191,8 @@ void Graph<T>::removeNode_d(const Node<T> *node){
     if (a == LIST.end()) return;
     for (int id: node->ptrBy){
         auto b = find(LIST[id].second.begin(), LIST[id].second.end(), node);
-        if (b != LIST[id].second.end()){
-            LIST[id].second.erase(b);
-        }
-        else{
-            cout << "-\nedge(" << id << ", " << node->id << ") not found\n";
-        }
+        if (b != LIST[id].second.end()) LIST[id].second.erase(b);
+        else cout << "-\nedge(" << id << ", " << node->id << ") not found\n";
     }
     LIST.erase(a);
     delete(node);
@@ -226,9 +210,7 @@ void Graph<T>::removeEdge(const Node<T> *a, const Node<T> *b){
         LIST[a->id].second.erase(ab);
         LIST[b->id].second.erase(ba);
     }
-    else{
-        cout << "-\nedge(" << a->id << ", " << b->id << ") not found\n";
-    }
+    else cout << "-\nedge(" << a->id << ", " << b->id << ") not found\n";
 }
 
 template<class T>
@@ -239,12 +221,8 @@ void Graph<T>::removeEdge_d(const Node<T> *a, const Node<T> *b){
     // NOTE: if LIST[id] is called, and id is not a key in map, cpp would implicitly create an element and insert it to map, and might cause bugs.
     // remove node's adj edge
     const auto ab = find(LIST[a->id].second.begin(), LIST[a->id].second.end(), b); // edge(a, b)
-    if (ab != LIST[a->id].second.end()){
-        LIST[a->id].second.erase(ab);
-    }
-    else{
-        cout << "-\nedge(" << a->id << ", " << b->id << ") not found\n";
-    }
+    if (ab != LIST[a->id].second.end()) LIST[a->id].second.erase(ab);
+    else cout << "-\nedge(" << a->id << ", " << b->id << ") not found\n";
 }
 
 template<class T>
@@ -306,7 +284,7 @@ void Graph<T>::DFS(const Node<T> *start){
 }
 
 template<class T>
-void Graph<T>::DFS(const Node<T> *start, list<const Node<T>*> nodes){ // do DFS in customized order, e.g. in descending order of finish time
+void Graph<T>::DFS(const Node<T> *start, list<const Node<T>*> &nodes){ // do DFS in customized order, e.g. in descending order of finish time
     for (auto &l: LIST) const_cast<Node<T>*>(l.second.first)->pred = NULL; // reset predecessor, for the need of multiple times DFS.
     cout << "-\nDFS:\n";
     DFS_traverse(start);
@@ -532,7 +510,7 @@ void Graph<T>::MST_Prim(){
 }
 
 template<class T>
-void Graph<T>::print_CC(std::map<int, list<const Node<T>*>> CC){
+void Graph<T>::print_CC(std::map<int, list<const Node<T>*>> &CC){
     cout << "-\nthe number of connected component: " << CC.size() << endl;
     int i = 0;
     for (auto &cc: CC){
@@ -563,5 +541,6 @@ int main(){
     graph2.insertNode(six); //graph2.insertNode(seven); graph2.insertNode(eight); 
     graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
     graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
+    // graph2.CCDFS();
     graph2.print_all();
 }
