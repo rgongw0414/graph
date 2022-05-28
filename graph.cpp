@@ -35,7 +35,7 @@ class Graph{
     multimap<
         const Node<T>*, pair<const Node<T>*, float>
     > LIST; // adj list of graph
-
+    ////
     bool Acyclic; // default acyclic, once find back edge, set to cyclic.
     bool Directed;
     bool Weighted;
