@@ -10,7 +10,7 @@ static int gid = 0, TIME = 0;
 template<class T>
 class Node{
     public:
-    int id;
+    const int id;
     int color; // 0: white, 1: gray, 2: black
     T value;
     map<int, list<float>> wEdge; // list of weighted edges
@@ -30,6 +30,12 @@ class Graph{
     map<
         int, pair<const Node<T>*, list<const Node<T>*>>
     > LIST; // adj list of graph
+    
+    // TODO: refactor all the code
+    // map<
+    //     const Node<T>*, list<const Node<T>*>
+    // > LIST; // adj list of graph
+
     bool Acyclic; // default acyclic, once find back edge, set to cyclic.
     bool Directed;
     bool Weighted;
@@ -421,9 +427,7 @@ void Graph<T>::transpose(){
 }
 
 template<class T>
-bool comp_finish_time(const Node<T>* a, const Node<T>* b){
-    return a->TIME.second > b->TIME.second;
-}
+bool comp_finish_time(const Node<T>* a, const Node<T>* b){ return a->TIME.second > b->TIME.second; }
 
 template<class T>
 void Graph<T>::SCCDFS(const Node<T> *start){
@@ -520,6 +524,9 @@ void Graph<T>::print_CC(std::map<int, list<const Node<T>*>> &CC){
     }
 }
 
+template<class T>
+bool Node_comp(const Node<T>* a, const Node<T>* b){ return a->id > b->id; }
+
 int main(){
     // Graph<char> graph = Graph<char>();
     // Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
@@ -541,6 +548,27 @@ int main(){
     graph2.insertNode(six); //graph2.insertNode(seven); graph2.insertNode(eight); 
     graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
     graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
-    // graph2.CCDFS();
-    graph2.print_all();
+    // graph2.CCBFS();
+    // graph2.print_all();
+    map<Node<int>*, 
+        list<Node<int>*>, 
+        bool(*)(const Node<int>*, const Node<int>*)
+    > mylist(Node_comp<int>);
+    mylist[zero].emplace_back(one);
+    mylist[zero].emplace_back(three);
+    mylist[eight].emplace_back(four);
+    mylist[eight].emplace_back(seven);
+    for (auto &l: mylist){
+        cout << l.first->id << ": ";
+        for (auto &n: l.second){
+            cout << n->id << " ";
+        }
+        cout << endl;
+    }
+    cout << mylist[zero].back()->value;
+
+    map<Node<int>*, 
+        pair<list<Node<int>*>, float>, 
+        bool(*)(const Node<int>*, const Node<int>*)
+    > mylist2(Node_comp<int>);
 }
