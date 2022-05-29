@@ -495,8 +495,7 @@ void Graph<T>::CCBFS(){
     Node<T>* prev = NULL; // to avoid visit the same node
     for (auto &l: LIST){
         if (prev != l.first){
-            if (l.first->pred == NULL) 
-                CC[l.first->id].emplace_back(l.first);
+            if (l.first->pred == NULL) CC[l.first->id].emplace_back(l.first);
             else this->SetCollapsing(l.first);
         }
         prev = const_cast<Node<T>*>(l.first);
