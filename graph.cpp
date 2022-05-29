@@ -18,17 +18,10 @@ class Node{
     Node* pred; // predecessor
     Node():id(gid++), color(WHITE), TIME(make_pair(-1, -1)), pred(NULL){}
     Node(T v):id(gid++), color(WHITE), value(v), TIME(make_pair(-1, -1)), pred(NULL){}
-    // Node(T v, float w):id(gid++), color(WHITE), value(v), weight(w), TIME(make_pair(-1, -1)), pred(NULL){}
-    
 };
 
 template<class T>
-bool operator==(const Node<T> a, const Node<T> b){
-    return a.id == b.id && a.color == b.color && a.value == b.value;
-}
-
-template<class T>
-bool Node_comp(const Node<T>* a, const Node<T>* b){ return a->id < b->id; }
+bool operator==(const Node<T> a, const Node<T> b){ return a.id == b.id && a.color == b.color && a.value == b.value; }
 
 // template<class T>
 // struct Node_comp {
@@ -36,6 +29,9 @@ bool Node_comp(const Node<T>* a, const Node<T>* b){ return a->id < b->id; }
 //         return lhs->id < rhs->id; // NB. ignores y on purpose
 //     }
 // };
+
+template<class T>
+bool Node_comp(const Node<T>* a, const Node<T>* b){ return a->id < b->id; }
 
 template<class T>
 class Graph{
@@ -52,7 +48,7 @@ class Graph{
     bool acyclic() const;
     bool directed() const;
     bool weighted() const;
-    void insertNode(const T value); // return the inserted elem in LIST
+    const Node<T> * insertNode(const T value); // return the inserted elem in LIST
     void insertNode(const Node<T> *node);
     void connect(const Node<T> *a, const Node<T> *b, float weight = 0); // create weighted undirected edge
     void connect_d(const Node<T> *a, const Node<T> *b, float weight = 0); // create weighted directed edge
@@ -90,13 +86,14 @@ template<class T>
 bool Graph<T>::weighted() const{ return this->Weighted; }
 
 template<class T>
-void Graph<T>::insertNode(const T value){
+const Node<T> * Graph<T>::insertNode(const T value){
     const Node<T> *node = new Node<T>(value);
-    // instead of "insert", use "emplace", it avoids implicit creation of temporary element w.r.t. container.
-    // "emplace" use the parameters to create element
     const Node<T>* NuLL = NULL;
     float weight = 0;
     LIST.emplace(make_pair(node, make_pair(NuLL, weight))); // "emplace" returns the iter of the inserted elem
+    // NOTE: instead of "insert", use "emplace", it avoids implicit creation of temporary element w.r.t. container.
+    //       "emplace" use the parameters to create element
+    return node;
 }
 
 template<class T>
@@ -109,12 +106,8 @@ void Graph<T>::insertNode(const Node<T> *node){
 template<class T>
 void Graph<T>::connect(const Node<T> *a, const Node<T> *b, float weight){
     // create edge(a, b) and edge(b, a)
-    auto iterA = LIST.find(a);
-    // if (iterA->second.first == NULL) LIST.erase(iterA);
-    const bool foundA = (iterA != LIST.end());
-    auto iterB = LIST.find(b);
-    // if (iterB->second.first == NULL) LIST.erase(iterB);
-    const bool foundB = (iterB != LIST.end());
+    auto iterA = LIST.find(a); const bool foundA = (iterA != LIST.end());
+    auto iterB = LIST.find(b); const bool foundB = (iterB != LIST.end());
     if (foundA && foundB){
         LIST.emplace(make_pair(a, make_pair(b, weight)));
         LIST.emplace(make_pair(b, make_pair(a, weight)));
@@ -129,8 +122,8 @@ template<class T>
 void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b, float weight){ 
     if (!directed()) Directed = true;
     // create edge(a, b)
-    const bool foundA = (LIST.find(a->id) != LIST.end());
-    const bool foundB = (LIST.find(b->id) != LIST.end());
+    auto iterA = LIST.find(a); const bool foundA = (iterA != LIST.end());
+    auto iterB = LIST.find(b); const bool foundB = (iterB != LIST.end());
     if (foundA && foundB){
         (const_cast<Node<T>*>(b))->ptrBy.emplace_back(a->id); // save id of a, for the use of removeNode
         LIST[a->id].second.emplace_back(b);
@@ -151,7 +144,6 @@ void Graph<T>::print_all() const{
     if (acyclic()) cout << "acyclic, "; // detect cycle while DFS
     if (directed()) cout << "directed graph\n";
     else cout << "undirected graph\n";
-
     for (auto elem: LIST){
         auto a = elem.first;
         auto b = elem.second.first;
@@ -171,15 +163,18 @@ void Graph<T>::print_all() const{
 template<class T>
 void Graph<T>::removeNode(const Node<T> *node){
     // remove node and it's all adjacent edge from adj_list
-    const auto a = LIST.find(node->id);
-    if (a == LIST.end()) return;
-    for (auto &n: (*a).second.second){ // iterate through node's all adj nodes
-        // NOTE: if not simple graph, remember to remove all edges.
-        auto b = find(LIST[n->id].second.begin(), LIST[n->id].second.end(), node); // remove node's adj edge
-        if (b != LIST[n->id].second.end()) LIST[n->id].second.erase(b);
-        else cout << "-\nedge(" << n->id << ", " << node->id << ") not found\n";
+    auto num_deleted = LIST.erase(node);
+    if (num_deleted == 0){
+        cout << "node not in graph\n";
+        return;
     }
-    LIST.erase(a); // what's the content after erase ?
+    auto end = LIST.end();
+    for (auto iter = LIST.begin(); iter != LIST.end();){ // iterate through node's all adj nodes
+        auto b = (*iter).second.first;
+        auto tmp = iter;
+        iter++;
+        if (b == node) LIST.erase(tmp);
+    }
     delete(node);
 }
 
@@ -538,9 +533,11 @@ int main(){
     
     graph2.insertNode(zero);
     graph2.insertNode(one);
-    graph2.insertNode(999);
+    auto n = graph2.insertNode(999);
     graph2.insertNode(ten);
+    graph2.connect(zero, n);
     graph2.connect(zero, one);
+    graph2.removeNode(one);
     graph2.print_all();
     // for (auto elem: graph2.LIST){
     //     if (elem.second.first == NULL)
@@ -567,6 +564,6 @@ int main(){
     //     std::cout << it->first << ' ' << it->second << '\n';
     // }
     // auto r = map.emplace(make_pair(555, 'z'));
-    // cout << (*r).first << endl;
-    // cout << (*r).second << endl;
+    // auto z = map.erase(999);
+    // cout << z << endl;
 }
