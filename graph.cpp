@@ -13,7 +13,6 @@ class Node{
     const int id;
     int color; // 0: white, 1: gray, 2: black
     T value;
-    vector<int> ptrBy; // ids, for removeNode in directed graph, e.g. consider edge(A, B), B is pointed by A, hence push A's id to ptrBy of B.
     pair<int, int> TIME; //  discover, finish
     Node* pred; // predecessor
     Node():id(gid++), color(WHITE), TIME(make_pair(-1, -1)), pred(NULL){}
@@ -73,7 +72,9 @@ class Graph{
     void MST_Prim();
     void print_CC(map<int, list<const Node<T>*>> &CC);
     void print_all() const;
-    void color_reset() const;
+    void pred_reset();
+    void color_reset();
+    void reset();
 };
 
 template<class T>
@@ -168,7 +169,6 @@ void Graph<T>::removeNode(const Node<T> *node){
         cout << "node not in graph\n";
         return;
     }
-    auto end = LIST.end();
     for (auto iter = LIST.begin(); iter != LIST.end();){ // iterate through node's all adj nodes
         auto b = (*iter).second.first;
         auto tmp = iter;
@@ -181,60 +181,75 @@ void Graph<T>::removeNode(const Node<T> *node){
 template<class T>
 void Graph<T>::removeNode_d(const Node<T> *node){
     if (!directed()) Directed = true;
-    // remove all edges to node_a, or edges from node_a to other nodes
-    const auto a = LIST.find(node->id);
-    if (a == LIST.end()) return;
-    for (int id: node->ptrBy){
-        auto b = find(LIST[id].second.begin(), LIST[id].second.end(), node);
-        if (b != LIST[id].second.end()) LIST[id].second.erase(b);
-        else cout << "-\nedge(" << id << ", " << node->id << ") not found\n";
-    }
-    LIST.erase(a);
-    delete(node);
+    removeNode(node);
 }
 
 template<class T>
 void Graph<T>::removeEdge(const Node<T> *a, const Node<T> *b){
-    if (!LIST.count(a->id)) return;
-    if (!LIST.count(b->id)) return; 
-    // NOTE: if LIST[id] is called, and id is not a key in map, cpp would implicitly create an element and insert it to map, and might cause bugs.
-    // remove node's adj edge
-    const auto ab = find(LIST[a->id].second.begin(), LIST[a->id].second.end(), b); // edge(a, b)
-    const auto ba = find(LIST[b->id].second.begin(), LIST[b->id].second.end(), a); // edge(b, a)
-    if (ab != LIST[a->id].second.end() && ba != LIST[b->id].second.end()){
-        LIST[a->id].second.erase(ab);
-        LIST[b->id].second.erase(ba);
+    if (a == NULL || b == NULL) return;
+    auto pa = LIST.equal_range(a); auto ab = LIST.end();
+    for (auto it = pa.first; it != pa.second; it++){
+        if (it->second.first == b){
+            ab = it;
+            break;
+        }
+    }
+    auto pb = LIST.equal_range(b); auto ba = LIST.end();
+    for (auto it = pb.first; it != pb.second; it++){
+        if (it->second.first == b){
+            ba = it;
+            break;
+        }
+    }
+    if (ab != LIST.end() && ba != LIST.end()){
+        LIST.erase(ab);
+        LIST.erase(ba);
     }
     else cout << "-\nedge(" << a->id << ", " << b->id << ") not found\n";
 }
 
 template<class T>
 void Graph<T>::removeEdge_d(const Node<T> *a, const Node<T> *b){
+    if (a == NULL || b == NULL) return;
     if (!directed()) Directed = true;
-    if (!LIST.count(a->id)) return;
-    if (!LIST.count(b->id)) return; 
-    // NOTE: if LIST[id] is called, and id is not a key in map, cpp would implicitly create an element and insert it to map, and might cause bugs.
-    // remove node's adj edge
-    const auto ab = find(LIST[a->id].second.begin(), LIST[a->id].second.end(), b); // edge(a, b)
-    if (ab != LIST[a->id].second.end()) LIST[a->id].second.erase(ab);
+    auto pa = LIST.equal_range(a); auto ab = LIST.end();
+    for (auto it = pa.first; it != pa.second; it++){
+        if (it->second.first == b) { ab = it; break; }
+    }
+    if (ab != LIST.end()) LIST.erase(ab);
     else cout << "-\nedge(" << a->id << ", " << b->id << ") not found\n";
 }
 
 template<class T>
-void Graph<T>::color_reset() const{
+void Graph<T>::color_reset(){
     // set all nodes' color to white, i.e. set to 0
-    for (auto &l: LIST)
-        (const_cast<Node<T>*>(l.second.first))->color = WHITE;
+    for (auto &l: LIST) if (l.first->color != WHITE) (const_cast<Node<T>*>(l.first))->color = WHITE;
+}
+
+template<class T>
+void Graph<T>::pred_reset(){
+    // reset predecessor, for multiple times of DFS.
+    for (auto &l: LIST) if (l.first->pred != NULL) const_cast<Node<T>*>(l.first)->pred = NULL; 
+}
+
+template<class T>
+void Graph<T>::reset(){
+    color_reset();
+    pred_reset();
+    for (auto &l: LIST) if (l.first->TIME.first != 0 || l.first->TIME.second != 0) l.first->TIME = make_pair(0, 0);
 }
 
 template<class T>
 void Graph<T>::DFS_traverse(const Node<T> *node){
     auto a = const_cast<Node<T>*>(node);
-    if (LIST.find(a->id) == LIST.end()) return;
+    // if (LIST.find(a) == LIST.end()) return;
     a->color = GRAY; // set node to gray
     a->TIME.first = ::TIME++;
     cout << "\tid_" << a->id << ", value: " << a->value << endl;
-    for (auto &b: LIST[a->id].second){
+    auto p = LIST.equal_range(node);
+    for (auto it = p.first; it != p.second; it++){
+        auto b = it->second.first;
+        if (b == NULL) continue; // if b is a iteself, i.e. b: <a, <NULL, 0>>, then skip.
         // NOTE: undirected graph only have either Tree edge or Back edge
         if (b->color == WHITE){
             // cout << "tree edge: (" << a->value << ", " << b->value << ")\n";
@@ -265,29 +280,28 @@ void Graph<T>::DFS_traverse(const Node<T> *node){
     a->TIME.second = ::TIME++;
 }
 
+
+
 template<class T>
 void Graph<T>::DFS(const Node<T> *start){
+    pred_reset();
     cout << "-\nDFS:\n";
     DFS_traverse(start);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
-    for (auto &l: LIST){
-        if (l.second.first->color == WHITE)
-            DFS_traverse(l.second.first);
-    }
+    auto p = LIST.equal_range(start);
+    for (auto it = p.first; it != p.second; it++)
+        if (it->second.first != NULL && it->second.first->color == WHITE) DFS_traverse(it->second.first);
     color_reset();
     ::TIME = 0;
 }
 
 template<class T>
 void Graph<T>::DFS(const Node<T> *start, list<const Node<T>*> &nodes){ // do DFS in customized order, e.g. in descending order of finish time
-    for (auto &l: LIST) const_cast<Node<T>*>(l.second.first)->pred = NULL; // reset predecessor, for the need of multiple times DFS.
+    pred_reset();
     cout << "-\nDFS:\n";
     DFS_traverse(start);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
-    for (auto &n: nodes){
-        if (n->color == WHITE)
-            DFS_traverse(n);
-    }
+    for (auto &n: nodes) if (n->color == WHITE) DFS_traverse(n);
     color_reset();
     ::TIME = 0;
 }
@@ -522,7 +536,7 @@ int main(){
     // graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
     // graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
     // graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
-    // graph.CCDFS2();
+    // graph.DFS(a);
     // graph.print_all();
 
     Graph<int> graph2 = Graph<int>();
@@ -531,14 +545,14 @@ int main(){
     Node<int> *nine = new Node<int>(9); Node<int> *ten = new Node<int>(10); Node<int> *eleven = new Node<int>(11); Node<int> *twelve = new Node<int>(12); Node<int> *thirteen = new Node<int>(13); 
     Node<int> *fourteen = new Node<int>(14); 
     
-    graph2.insertNode(zero);
-    graph2.insertNode(one);
-    auto n = graph2.insertNode(999);
-    graph2.insertNode(ten);
-    graph2.connect(zero, n);
-    graph2.connect(zero, one);
-    graph2.removeNode(one);
-    graph2.print_all();
+    // graph2.insertNode(zero);
+    // graph2.insertNode(one);
+    // auto n = graph2.insertNode(999);
+    // graph2.insertNode(ten);
+    // graph2.connect(zero, n);
+    // graph2.connect(zero, one);
+    // graph2.removeNode(one);
+    // graph2.print_all();
     // for (auto elem: graph2.LIST){
     //     if (elem.second.first == NULL)
     //         cout << "id: " << elem.first->id << ", value: " << elem.first->value << endl;
@@ -546,13 +560,18 @@ int main(){
     //         cout << "\tid: " << elem.second.first->id << ", value: " << elem.second.first->value << endl;
     // }
 
-    // graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
-    // graph2.insertNode(six); //graph2.insertNode(seven); graph2.insertNode(eight); 
-    // graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
-    // graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
-    // graph2.CCBFS();
-    // graph2.print_all();
-
+    graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
+    graph2.insertNode(six); //graph2.insertNode(seven); graph2.insertNode(eight); 
+    graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
+    graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
+    graph2.print_all();
+    graph2.DFS(zero);
+    graph2.print_all();
+    // auto p = graph2.LIST.equal_range(zero);
+    // for (auto it = p.first; it != p.second; it++){
+    //     if (it->second.first != NULL)
+    //         cout << (it->second.first)->id << endl;
+    // }
     // map<Node<int>*, 
     //     pair<list<Node<int>*>, float>, 
     //     bool(*)(const Node<int>*, const Node<int>*)
@@ -564,6 +583,10 @@ int main(){
     //     std::cout << it->first << ' ' << it->second << '\n';
     // }
     // auto r = map.emplace(make_pair(555, 'z'));
-    // auto z = map.erase(999);
-    // cout << z << endl;
+    // auto p = map.equal_range(2);
+    // for (auto it = p.first; it != p.second; it++){
+    //     cout << it->first << endl;
+    // }
+    // cout << p.first - p.second << endl;
+    // cout << p.second << endl;
 }
