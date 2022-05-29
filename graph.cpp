@@ -280,17 +280,13 @@ void Graph<T>::DFS_traverse(const Node<T> *node){
     a->TIME.second = ::TIME++;
 }
 
-
-
 template<class T>
 void Graph<T>::DFS(const Node<T> *start){
     pred_reset();
     cout << "-\nDFS:\n";
     DFS_traverse(start);
     // cout << "-\ndo DFS to nodes that haven't been visited: \n";
-    auto p = LIST.equal_range(start);
-    for (auto it = p.first; it != p.second; it++)
-        if (it->second.first != NULL && it->second.first->color == WHITE) DFS_traverse(it->second.first);
+    for (auto &l: LIST) if (l.first->color == WHITE) DFS_traverse(l.first);
     color_reset();
     ::TIME = 0;
 }
@@ -315,13 +311,14 @@ void Graph<T>::BFS_traverse(list<const Node<T>*> &queue){
     node->color = BLACK;
     node->TIME.second = ::TIME++;
     cout << "\tid_" << node->id << ", value: " << node->value << endl;
-    const auto adj_nodes = (*LIST.find(node->id)).second.second;
-    for (auto &adj_node: adj_nodes){
-        if (adj_node->color == WHITE) {
-            (const_cast<Node<T>*>(adj_node))->color = GRAY;
-            (const_cast<Node<T>*>(adj_node))->TIME.first = ::TIME++;
-            (const_cast<Node<T>*>(adj_node))->pred = node;
-            queue.emplace_back(adj_node);
+    auto p = LIST.equal_range(node);
+    for (auto it = p.first; it != p.second; it++){
+        auto adj_node = (const_cast<Node<T>*>(it->second.first)) ;
+        if (adj_node != NULL && adj_node->color == WHITE) {
+            adj_node->color = GRAY;
+            adj_node->TIME.first = ::TIME++;
+            adj_node->pred = node;
+            queue.emplace_back(it->second.first);
         }
     }
     BFS_traverse(queue);
@@ -329,12 +326,8 @@ void Graph<T>::BFS_traverse(list<const Node<T>*> &queue){
 
 template<class T>
 void Graph<T>::BFS(const Node<T> *start){
-    const auto n = LIST.find(start->id);
-    if (n == LIST.end()){
-        cout << "node not found\n";
-        return;
-    }
-    for (auto &l: LIST) const_cast<Node<T>*>(l.second.first)->pred = NULL; // reset predecessor, for the need of multiple times BFS.
+    if (LIST.find(start) == LIST.end()){ cout << "node not found\n"; return; }
+    pred_reset();
     cout << "-\nBFS:\n";
     list<const Node<T>*> queue; // FIFO
     if (start->color == WHITE){
@@ -345,10 +338,10 @@ void Graph<T>::BFS(const Node<T> *start){
     }
     // cout << "-\ndo BFS to nodes that haven't been visited: \n";
     for (auto &l: LIST){
-        if (l.second.first->color == WHITE){
-            (const_cast<Node<T>*>(l.second.first))->color = GRAY;
-            (const_cast<Node<T>*>(l.second.first))->TIME.first = ::TIME++;
-            queue.emplace_back(l.second.first);
+        if (l.first->color == WHITE){
+            (const_cast<Node<T>*>(l.first))->color = GRAY;
+            (const_cast<Node<T>*>(l.first))->TIME.first = ::TIME++;
+            queue.emplace_back(l.first);
             BFS_traverse(queue);
         }
     }
@@ -361,8 +354,7 @@ template<class T>
 void Graph<T>::SetCollapsing(const Node<T>* node){
     auto current = const_cast<Node<T>*>(node);
     auto root = current;
-    while (root->pred != NULL)
-        root = root->pred;
+    while (root->pred != NULL) root = root->pred;
     while (current != root){
         auto parent = current->pred;
         current->pred = root;    
@@ -373,17 +365,24 @@ void Graph<T>::SetCollapsing(const Node<T>* node){
 template<class T>
 void Graph<T>::CCDFS(){
     if (this->directed()) return;
-    auto start = (*LIST.begin()).second.first;
+    auto start = (*LIST.begin()).first;
     this->DFS(start); // DFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
+    Node<T>* prev = NULL; // to avoid visit the same node
     for (auto &l: LIST){
-        if (l.second.first->pred == NULL)
-            CC[l.second.first->id].emplace_back(l.second.first);
-        else this->SetCollapsing(l.second.first);
+        if (prev != l.first){
+            if (l.first->pred == NULL) CC[l.first->id].emplace_back(l.first);
+            else this->SetCollapsing(l.first);
+        }
+        prev = const_cast<Node<T>*>(l.first);
     }
+    prev = NULL;
     for (auto &l: LIST){
-        if (l.second.first->pred != NULL && CC.find(l.second.first->pred->id) != CC.end())
-            CC[l.second.first->pred->id].emplace_back(l.second.first);
+        if (prev != l.first){
+            if (l.first->pred != NULL && CC.find(l.first->pred->id) != CC.end())
+                CC[l.first->pred->id].emplace_back(l.first);
+        }
+        prev = const_cast<Node<T>*>(l.first);
     }
     print_CC(CC);
 }
@@ -391,22 +390,26 @@ void Graph<T>::CCDFS(){
 template<class T>
 void Graph<T>::CCDFS2(){
     if (this->directed()) return;
-    auto start = (*LIST.begin()).second.first;
+    auto start = (*LIST.begin()).first;
     this->DFS(start); // DFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
+    Node<T>* prev = NULL; // to avoid visit the same node
     for (auto &l: LIST){
-        if (l.second.first->pred == NULL){
-            if (CC.find(l.second.first->id) == CC.end()) 
-                CC[l.second.first->id].emplace_back(l.second.first);
+        if (prev != l.first){
+            if (l.first->pred == NULL){
+                if (CC.find(l.first->id) == CC.end()) 
+                    CC[l.first->id].emplace_back(l.first);
+            }
+            else{
+                auto current = const_cast<Node<T>*>(l.first);
+                while (current->pred->pred != NULL)
+                    current = current->pred;
+                if (CC.find(current->pred->id) == CC.end()) 
+                    CC[current->pred->id].emplace_back(current->pred);
+                CC[current->pred->id].emplace_back(l.first);
+            }
         }
-        else{
-            auto current = const_cast<Node<T>*>(l.second.first);
-            while (current->pred->pred != NULL)
-                current = current->pred;
-            if (CC.find(current->pred->id) == CC.end()) 
-                CC[current->pred->id].emplace_back(current->pred);
-            CC[current->pred->id].emplace_back(l.second.first);
-        }
+        prev = const_cast<Node<T>*>(l.first);
     }
     print_CC(CC);
 }
@@ -561,11 +564,13 @@ int main(){
     // }
 
     graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
-    graph2.insertNode(six); //graph2.insertNode(seven); graph2.insertNode(eight); 
-    graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
-    graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
-    graph2.print_all();
-    graph2.DFS(zero);
+    graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
+    // graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
+    // graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
+    graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(two, three, 8); 
+    graph2.connect(six, four, 2); graph2.connect(five, four, 6); //graph2.connect(two, four, 6); 
+    // graph2.print_all();
+    graph2.CCDFS2();
     graph2.print_all();
     // auto p = graph2.LIST.equal_range(zero);
     // for (auto it = p.first; it != p.second; it++){
