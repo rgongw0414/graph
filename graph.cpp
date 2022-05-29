@@ -123,15 +123,11 @@ template<class T>
 void Graph<T>::connect_d(const Node<T> *a, const Node<T> *b, float weight){ 
     if (!directed()) Directed = true;
     // create edge(a, b)
-    auto iterA = LIST.find(a); const bool foundA = (iterA != LIST.end());
-    auto iterB = LIST.find(b); const bool foundB = (iterB != LIST.end());
+    const bool foundA = (LIST.find(a) != LIST.end());
+    const bool foundB = (LIST.find(b) != LIST.end());
     if (foundA && foundB){
-        (const_cast<Node<T>*>(b))->ptrBy.emplace_back(a->id); // save id of a, for the use of removeNode
-        LIST[a->id].second.emplace_back(b);
-        if (weight != 0){
-            if (!weighted()) this->Weighted = true;
-            a->wEdge[b->id].emplace_back(weight);
-        }
+        if (!weighted()) this->Weighted = true;
+        LIST.emplace(make_pair(a, make_pair(b, weight)));
     }
     else{
         if (!foundA) cout << "-\nnode id_" << a->id << " not found\n";
@@ -396,16 +392,12 @@ void Graph<T>::CCDFS2(){
     Node<T>* prev = NULL; // to avoid visit the same node
     for (auto &l: LIST){
         if (prev != l.first){
-            if (l.first->pred == NULL){
-                if (CC.find(l.first->id) == CC.end()) 
-                    CC[l.first->id].emplace_back(l.first);
-            }
+            if (l.first->pred == NULL)
+                if (CC.find(l.first->id) == CC.end()) CC[l.first->id].emplace_back(l.first);
             else{
                 auto current = const_cast<Node<T>*>(l.first);
-                while (current->pred->pred != NULL)
-                    current = current->pred;
-                if (CC.find(current->pred->id) == CC.end()) 
-                    CC[current->pred->id].emplace_back(current->pred);
+                while (current->pred->pred != NULL) current = current->pred;
+                if (CC.find(current->pred->id) == CC.end()) CC[current->pred->id].emplace_back(current->pred);
                 CC[current->pred->id].emplace_back(l.first);
             }
         }
@@ -418,18 +410,22 @@ template<class T>
 void Graph<T>::transpose(){ 
     // after transpose, SCCs remain, other edges are reversed;
     // by doing so, it prevents the second DFS from traversing all components.
-    map<int, int> list_size; // to make sure pop the exact num of nodes in each lsit
-    for (auto &l: LIST)
-        list_size[l.first] = l.second.second.size();
+    if (!this->directed()) return;
     // reverse the direction of every edge
-    for (auto &l: LIST){ // O(E), E: the num of edges
-        auto a = l.second.first;
-        while (list_size[l.first]--){
-            auto b = l.second.second.front();
-            l.second.second.pop_front();
-            LIST[b->id].second.emplace_back(a);
-        }
+    
+    // TODO: iterate through container and erase elem at the same loop safely.
+    auto newLIST = LIST;
+    for (auto it = newLIST.begin(); it != newLIST.end();){ // remove original edges
+        auto tmp = it; it++;
+        if (tmp->second.first == NULL) continue;
+        else newLIST.erase(tmp);
     }
+    for (auto it = LIST.begin(); it != LIST.end();){ // insert the reverse edges to new LIST
+        auto tmp = it; it++;
+        if (tmp->second.first == NULL) continue; // O(E), E: the num of edges
+        else newLIST.emplace(make_pair(tmp->second.first, make_pair(tmp->first, tmp->second.second)));
+    }
+    LIST = newLIST;
 }
 
 template<class T>
@@ -441,18 +437,25 @@ void Graph<T>::SCCDFS(const Node<T> *start){
     this->DFS(start); // DFS_1, to build finish time of nodes. O(V)
     this->transpose(); // O(E)
     list<const Node<T>*> nodes;
-    for (auto &l: LIST) nodes.emplace_back(l.second.first);
+    for (auto &l: LIST) if (l.first != nodes.back()) nodes.emplace_back(l.first);
     nodes.sort(comp_finish_time<T>); // O(N*log(N))
     this->DFS(nodes.front(), nodes); // NOTE: only works for the component, which has minimal finish time in G^T (maximal finish time in G).
     map<int, list<const Node<T>*>> CC; 
+    Node<T>* prev = NULL; // to avoid visit the same node
     for (auto &l: LIST){
-        if (l.second.first->pred == NULL)
-            CC[l.second.first->id].emplace_back(l.second.first);
-        else this->SetCollapsing(l.second.first);
+        if (prev != l.first){
+            if (l.first->pred == NULL) CC[l.first->id].emplace_back(l.first);
+            else this->SetCollapsing(l.first);
+        }
+        prev = const_cast<Node<T>*>(l.first);
     }
+    prev = NULL; // to avoid visit the same node
     for (auto &l: LIST){
-        if (l.second.first->pred != NULL && CC.find(l.second.first->pred->id) != CC.end())
-            CC[l.second.first->pred->id].emplace_back(l.second.first);
+        if (prev != l.first){
+            if (l.first->pred != NULL && CC.find(l.first->pred->id) != CC.end())
+                CC[l.first->pred->id].emplace_back(l.first);
+        }
+        prev = const_cast<Node<T>*>(l.first);
     }
     print_CC(CC);
     this->transpose(); // resume the graph's adj_list
@@ -460,11 +463,11 @@ void Graph<T>::SCCDFS(const Node<T> *start){
 
 template<class T>
 void Graph<T>::topological_sort(){
-    auto start = (*LIST.begin()).second.first;
+    auto start = (*LIST.begin()).first;
     this->DFS(start); // DFS first, in order to build finish time on each node
     if (!acyclic()) return;
     list<const Node<T>*> topology;
-    for (auto &l: LIST) topology.emplace_back(l.second.first);
+    for (auto &l: LIST) if (l.first != topology.back()) topology.emplace_back(l.first);
     topology.sort(comp_finish_time<T>); // O(N*log(N))
     cout << "-\nTopological Sort: ";
     for (auto &t: topology) cout << t->value << " ";
@@ -476,7 +479,7 @@ void Graph<T>::topological_sort(const Node<T>* start){ // only for DAG (directed
     this->DFS(start); // DFS first, in order to build finish time on each node, and check whether acyclic or not.
     if (!acyclic()) return;
     list<const Node<T>*> topology;
-    for (auto &l: LIST) topology.emplace_back(l.second.first);
+    for (auto &l: LIST) if (l.first != topology.back()) topology.emplace_back(l.first);
     topology.sort(comp_finish_time<T>); // O(N*log(N))
     cout << "-\nTopological Sort: ";
     for (auto &t: topology) cout << t->value << " ";
@@ -486,17 +489,24 @@ void Graph<T>::topological_sort(const Node<T>* start){ // only for DAG (directed
 template<class T>
 void Graph<T>::CCBFS(){
     if (this->directed()) return;
-    auto start = (*LIST.begin()).second.first;
+    auto start = (*LIST.begin()).first;
     this->BFS(start); // BFS first, in order to build pred on each node
     map<int, list<const Node<T>*>> CC;
+    Node<T>* prev = NULL; // to avoid visit the same node
     for (auto &l: LIST){
-        if (l.second.first->pred == NULL) 
-            CC[l.second.first->id].emplace_back(l.second.first);
-        else this->SetCollapsing(l.second.first);
+        if (prev != l.first){
+            if (l.first->pred == NULL) 
+                CC[l.first->id].emplace_back(l.first);
+            else this->SetCollapsing(l.first);
+        }
+        prev = const_cast<Node<T>*>(l.first);
     }
     for (auto &l: LIST){
-        if (l.second.first->pred != NULL && CC.find(l.second.first->pred->id) != CC.end())
-            CC[l.second.first->pred->id].emplace_back(l.second.first);
+        if (prev != l.first){
+            if (l.first->pred != NULL && CC.find(l.first->pred->id) != CC.end())
+                CC[l.first->pred->id].emplace_back(l.first);
+        }
+        prev = const_cast<Node<T>*>(l.first);
     }
     print_CC(CC);
 }
@@ -531,56 +541,22 @@ void Graph<T>::print_CC(std::map<int, list<const Node<T>*>> &CC){
 }
 
 int main(){
-    // Graph<char> graph = Graph<char>();
-    // Node<char> *a = new Node<char>('A'); Node<char> *b = new Node<char>('B'); Node<char> *c = new Node<char>('C'); Node<char> *d = new Node<char>('D'); 
-    // Node<char> *e = new Node<char>('E'); Node<char> *f = new Node<char>('F'); Node<char> *g = new Node<char>('G'); Node<char> *h = new Node<char>('H');
-    // Node<char> *i = new Node<char>('I');
-    // graph.insertNode(a); graph.insertNode(b); graph.insertNode(c); graph.insertNode(d);
-    // graph.insertNode(e); graph.insertNode(f); graph.insertNode(g); graph.insertNode(h);
-    // graph.connect_d(a, b); graph.connect_d(a, c); graph.connect_d(b, d); graph.connect_d(c, b); graph.connect_d(c, f); graph.connect_d(d, e); 
-    // graph.connect_d(d, f); graph.connect_d(f, b); graph.connect_d(g, e); graph.connect_d(g, h); graph.connect_d(h, g);
-    // graph.DFS(a);
-    // graph.print_all();
-
     Graph<int> graph2 = Graph<int>();
     Node<int> *zero = new Node<int>(0); Node<int> *one = new Node<int>(1); Node<int> *two = new Node<int>(2); Node<int> *three = new Node<int>(3); 
     Node<int> *four = new Node<int>(4); Node<int> *five = new Node<int>(5); Node<int> *six = new Node<int>(6); Node<int> *seven = new Node<int>(7); Node<int> *eight = new Node<int>(8); 
     Node<int> *nine = new Node<int>(9); Node<int> *ten = new Node<int>(10); Node<int> *eleven = new Node<int>(11); Node<int> *twelve = new Node<int>(12); Node<int> *thirteen = new Node<int>(13); 
     Node<int> *fourteen = new Node<int>(14); 
-    
-    // graph2.insertNode(zero);
-    // graph2.insertNode(one);
-    // auto n = graph2.insertNode(999);
-    // graph2.insertNode(ten);
-    // graph2.connect(zero, n);
-    // graph2.connect(zero, one);
-    // graph2.removeNode(one);
-    // graph2.print_all();
-    // for (auto elem: graph2.LIST){
-    //     if (elem.second.first == NULL)
-    //         cout << "id: " << elem.first->id << ", value: " << elem.first->value << endl;
-    //     else if (elem.second.first != NULL)
-    //         cout << "\tid: " << elem.second.first->id << ", value: " << elem.second.first->value << endl;
-    // }
 
     graph2.insertNode(zero); graph2.insertNode(one); graph2.insertNode(two); graph2.insertNode(three); graph2.insertNode(four); graph2.insertNode(five); 
     graph2.insertNode(six); graph2.insertNode(seven); graph2.insertNode(eight); 
     // graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(zero, five, 3); graph2.connect(one, four, 1); graph2.connect(one, six, 4); graph2.connect(two, six, 8); 
     // graph2.connect(two, three, 5); graph2.connect(six, four, 2); graph2.connect(six, three, 9); graph2.connect(five, four, 6); graph2.connect(four, three, 7); 
-    graph2.connect(zero, one, 5); graph2.connect(one, two, 10); graph2.connect(two, three, 8); 
-    graph2.connect(six, four, 2); graph2.connect(five, four, 6); //graph2.connect(two, four, 6); 
-    // graph2.print_all();
-    graph2.CCDFS2();
+    graph2.connect_d(zero, one, 5); graph2.connect_d(one, two, 10); graph2.connect_d(two, three, 15); 
+    graph2.connect_d(two, zero, 2); graph2.connect_d(three, two, 6); graph2.connect_d(two, five, 6); graph2.connect_d(one, four, 6); 
+    graph2.connect_d(five, four, 6); graph2.connect_d(four, five, 6); graph2.connect_d(four, six, 6); graph2.connect_d(five, six, 6); 
+    graph2.connect_d(five, seven, 6); graph2.connect_d(six, seven, 6); graph2.connect_d(seven, eight, 6); graph2.connect_d(eight, six, 6); 
+    graph2.SCCDFS(zero);
     graph2.print_all();
-    // auto p = graph2.LIST.equal_range(zero);
-    // for (auto it = p.first; it != p.second; it++){
-    //     if (it->second.first != NULL)
-    //         cout << (it->second.first)->id << endl;
-    // }
-    // map<Node<int>*, 
-    //     pair<list<Node<int>*>, float>, 
-    //     bool(*)(const Node<int>*, const Node<int>*)
-    // > mylist2(Node_comp<int>);
 
     // std::multimap<int,char> map = {{1,'a'},{1,'b'},{1,'d'},{2,'b'},{1,'e'}};
     // auto range = map.equal_range(1);
