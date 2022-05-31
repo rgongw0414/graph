@@ -165,6 +165,7 @@ void Graph<T>::removeNode(const Node<T> *node){
         cout << "node not in graph\n";
         return;
     }
+    //*** NOTE: use the returned iter of erase() to iterate through container, otherwise, iter and end() might cross, and result in segmentation fault. ***//
     for (auto iter = LIST.begin(); iter != LIST.end();){ // iterate through node's all adj nodes
         auto b = (*iter).second.first;
         if (b == node) iter = LIST.erase(iter); // "erase" return the iter of the first element, which follows the removed element.
@@ -412,6 +413,7 @@ void Graph<T>::transpose(){
     if (!this->directed()) return;
     // reverse the direction of every edge
     list<pair<const Node<T>*, pair<const Node<T>*, float>>> edges; // edges to be reversed
+    //*** NOTE: use the returned iter of erase() to iterate through container, otherwise, iter and end() might cross, and result in segmentation fault. ***//
     for (auto it = LIST.begin(); it != LIST.end();){
         if (it->second.first == NULL) it++;
         else {
