@@ -167,9 +167,8 @@ void Graph<T>::removeNode(const Node<T> *node){
     }
     for (auto iter = LIST.begin(); iter != LIST.end();){ // iterate through node's all adj nodes
         auto b = (*iter).second.first;
-        auto tmp = iter;
-        iter++;
-        if (b == node) LIST.erase(tmp);
+        if (b == node) iter = LIST.erase(iter); // "erase" return the iter of the first element, which follows the removed element.
+        else iter++;
     }
     delete(node);
 }
@@ -412,20 +411,18 @@ void Graph<T>::transpose(){
     // by doing so, it prevents the second DFS from traversing all components.
     if (!this->directed()) return;
     // reverse the direction of every edge
-    
-    // TODO: iterate through container and erase elem at the same loop safely.
-    auto newLIST = LIST;
-    for (auto it = newLIST.begin(); it != newLIST.end();){ // remove original edges
-        auto tmp = it; it++;
-        if (tmp->second.first == NULL) continue;
-        else newLIST.erase(tmp);
+    list<pair<const Node<T>*, pair<const Node<T>*, float>>> edges; // edges to be reversed
+    for (auto it = LIST.begin(); it != LIST.end();){
+        if (it->second.first == NULL) it++;
+        else {
+            edges.emplace_back(make_pair(it->second.first, make_pair(it->first, it->second.second))); // reverse the edge
+            it = LIST.erase(it); // "erase" returns the first iter of following element of removed element.
+        }
     }
-    for (auto it = LIST.begin(); it != LIST.end();){ // insert the reverse edges to new LIST
-        auto tmp = it; it++;
-        if (tmp->second.first == NULL) continue; // O(E), E: the num of edges
-        else newLIST.emplace(make_pair(tmp->second.first, make_pair(tmp->first, tmp->second.second)));
+    while (!edges.empty()){
+        LIST.emplace(edges.front());
+        edges.pop_front();
     }
-    LIST = newLIST;
 }
 
 template<class T>
@@ -557,16 +554,4 @@ int main(){
     graph2.SCCDFS(zero);
     graph2.print_all();
 
-    // std::multimap<int,char> map = {{1,'a'},{1,'b'},{1,'d'},{2,'b'},{1,'e'}};
-    // auto range = map.equal_range(1);
-    // for (auto it = range.first; it != range.second; ++it) {
-    //     std::cout << it->first << ' ' << it->second << '\n';
-    // }
-    // auto r = map.emplace(make_pair(555, 'z'));
-    // auto p = map.equal_range(2);
-    // for (auto it = p.first; it != p.second; it++){
-    //     cout << it->first << endl;
-    // }
-    // cout << p.first - p.second << endl;
-    // cout << p.second << endl;
 }
