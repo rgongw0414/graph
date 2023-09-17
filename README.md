@@ -1,5 +1,4 @@
-# graph
-graphs for fun
+# Graph algorithm practice
 * Functionality
   * General data type node, i.e. you can use any kind of data type as a node
   * DFS, BFS traversal
